@@ -1,8 +1,14 @@
+# 【中文导读｜第 4 步】这是一份数据来源清单，告诉训练器到哪里读取样本和图片。
 # Two RefCOCO training rows with their COCO images. Each row has one mask, so
 # this manifest works with either launcher. Relative paths resolve against
 # this file's directory.
+# 数据来源列表；可以列出多个来源。
 datasets:
+  # 便于日志识别的数据名称。
   - name: refcoco_sample
+    # 每行一条样本的文件路径，相对本清单目录。
     path: sample.jsonl
+    # 样本中相对图片文件名所依赖的根目录。
     image_folder: images
+    # 数据用途标签，便于报告按来源统计。
     tag: segmentation

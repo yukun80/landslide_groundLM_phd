@@ -1,0 +1,13 @@
+{
+  "status": "passed",
+  "backup_removed": true,
+  "document_pages": 77,
+  "learning_pages": 73,
+  "local_links_checked": 401,
+  "file_explanations": 120,
+  "class_function_explanations": 280,
+  "all_pages_reachable": true,
+  "execution_content_unchanged": true,
+  "historical_evidence_unchanged": true,
+  "historical_model_tests_rerun": false
+}

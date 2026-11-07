@@ -1,3 +1,6 @@
+# 【中文导读｜第 7 步】告诉版本管理忽略哪些自动生成文件；不会删除文件，也不控制模型读取。
+# 按下方英文分组阅读：缓存、编译产物、运行环境、日志及本项目模型输出。
+# 路径结尾 / 表示目录，* 表示匹配任意字符，! 表示从忽略规则中重新包含。
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
@@ -219,6 +222,7 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+# 项目专用规则：模型权重、运行输出、人造训练数据不随普通源码提交。
 # Xiaomi-Lens-0 project files
 .DS_Store
 *.swp

@@ -1,0 +1,10 @@
+{
+  "model_load": true,
+  "three_source_backward": true,
+  "finite_gradients": true,
+  "optimizer_update": true,
+  "saved_mask_logits_match": true,
+  "free_prediction": true,
+  "python": "/home/yukun80/miniconda3/envs/qwen3vl/bin/python",
+  "raw_answer": "在第三张光学遥感图片中，滑坡区域位于图像右侧中部，呈现为浅灰色、不规则的裸露地表，与周围深绿色的植被形成明显对比。该区域面积约占整个图像的10%。\n\n滑坡区域标记：[100, 300, 900, 700]<|im_end|>"
+}

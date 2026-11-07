@@ -1,0 +1,35 @@
+{
+  "count": 1000,
+  "counts": {
+    "GDCLD/train": 320,
+    "landslide4sense/train": 240,
+    "multimodal-landslide-dataset/train": 240,
+    "GDCLD/val": 40,
+    "landslide4sense/val": 30,
+    "multimodal-landslide-dataset/val": 30,
+    "GDCLD/test": 40,
+    "landslide4sense/test": 30,
+    "multimodal-landslide-dataset/test": 30
+  },
+  "negatives": {
+    "GDCLD/train": 0,
+    "landslide4sense/train": 0,
+    "multimodal-landslide-dataset/train": 0,
+    "GDCLD/val": 0,
+    "landslide4sense/val": 0,
+    "multimodal-landslide-dataset/val": 0,
+    "GDCLD/test": 0,
+    "landslide4sense/test": 0,
+    "multimodal-landslide-dataset/test": 0
+  },
+  "original_code_unchanged": true,
+  "all_training_encodings_checked": true,
+  "official_bbox_parser_checked": true,
+  "small_target_preserved_samples": [
+    "gdcld_train_original_00996",
+    "gdcld_train_original_04619",
+    "gdcld_train_original_00233",
+    "gdcld_train_original_09069",
+    "gdcld_val_original_01910"
+  ]
+}

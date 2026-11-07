@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 【中文导读｜阅读第 7 步】
+# 本文件：检查并可选地统一基础模型的边界框特殊符号名称，不重新训练或改写模型权重。
+# 怎么读：默认只检查；--in-place 才写入分词器文件。先看 inspect_model，再看 rewrite_model。
+# 完整路线与概念解释见仓库最外层 docs/xiaomi-lens-0/README.md（不是本算法子目录）。
+
 """Prepare a base Qwen3.5 checkpoint for Xiaomi-Lens-0 training.
 
 Xiaomi-Lens-0 writes boxes as `<bbox>[x1, y1, x2, y2]</bbox>`, reusing Qwen's
@@ -48,6 +53,7 @@ TOKENIZER_FILES = ("tokenizer.json", "tokenizer_config.json")
 DEFAULT_BACKUP_SUFFIX = ".legacy-box-tokens.bak"
 
 
+# 【步骤说明】读取命令行提供的文件位置、运行选项和默认值，返回解析后的选项对象；本函数不执行模型预测。
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("path", type=Path, help="Model directory or its parent")
@@ -64,6 +70,8 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+# 【步骤说明】接收模型目录或其父目录，查找同时有两个分词器设置文件的目录并返回排序列表。
+# 对照参数：path；下面保留原始英文说明与类型，方便对应调用处。
 def find_model_dirs(path: Path) -> list[Path]:
     if not path.is_dir():
         raise NotADirectoryError(path)
@@ -76,6 +84,8 @@ def find_model_dirs(path: Path) -> list[Path]:
     )
 
 
+# 【步骤说明】读取模型目录里的 tokenizer.json 和 tokenizer_config.json，返回两个字典供一致性检查。
+# 对照参数：model_dir；下面保留原始英文说明与类型，方便对应调用处。
 def token_entries(model_dir: Path) -> tuple[dict, dict]:
     tokenizer = json.loads((model_dir / "tokenizer.json").read_text(encoding="utf-8"))
     config = json.loads(
@@ -84,6 +94,8 @@ def token_entries(model_dir: Path) -> tuple[dict, dict]:
     return tokenizer, config
 
 
+# 【步骤说明】检查旧框符号或新框符号是否成对、编号一致且标为特殊符号；返回迁移状态和编号，混杂或冲突则报错。
+# 对照参数：model_dir；下面保留原始英文说明与类型，方便对应调用处。
 def inspect_model(model_dir: Path) -> dict:
     tokenizer, config = token_entries(model_dir)
     added = tokenizer.get("added_tokens")
@@ -171,6 +183,8 @@ def inspect_model(model_dir: Path) -> dict:
     return {"model": str(model_dir), "state": states.pop(), "token_ids": ids}
 
 
+# 【步骤说明】先将新内容写到同目录临时文件并落盘，再替换目标文件；不返回值，降低中断时只写一半的风险。
+# 对照参数：path, content；下面保留原始英文说明与类型，方便对应调用处。
 def atomic_write(path: Path, content: bytes) -> None:
     temporary: Path | None = None
     try:
@@ -193,6 +207,8 @@ def atomic_write(path: Path, content: bytes) -> None:
             temporary.unlink(missing_ok=True)
 
 
+# 【步骤说明】只替换分词器中的旧框符号拼写，先检查并备份，再写回；编号和权重不变，已有备份不覆盖。
+# 对照参数：model_dir, backup_suffix；下面保留原始英文说明与类型，方便对应调用处。
 def rewrite_model(model_dir: Path, backup_suffix: str) -> None:
     pending: dict[Path, bytes] = {}
     for name in TOKENIZER_FILES:
@@ -221,12 +237,14 @@ def rewrite_model(model_dir: Path, backup_suffix: str) -> None:
         atomic_write(path, converted)
 
 
+# 【运行入口】查找模型目录，先检查全部目标；指定写入时备份并重命名框符号，最后重新检查并打印报告。
 def main() -> int:
     args = parse_args()
     model_dirs = find_model_dirs(args.path)
     if not model_dirs:
         raise ValueError(f"{args.path}: found no tokenizer model directories")
 
+    # 先检查所有待处理目录，再进入实际修改，避免前一个目录已写入后才发现另一个格式不合法。
     before_by_dir = {model_dir: inspect_model(model_dir) for model_dir in model_dirs}
     if args.in_place and args.backup_suffix:
         for model_dir, before in before_by_dir.items():

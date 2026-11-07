@@ -1,0 +1,13 @@
+{
+  "seed": 20261107,
+  "accumulation": 8,
+  "mask_learning_rate": 0.00001,
+  "adapter_learning_rate": 0.0001,
+  "adapter_rank": 8,
+  "adapter_alpha": 16,
+  "epochs": 4,
+  "high_resolution_edge": 512,
+  "auxiliary_edge": 256,
+  "maximum_sequence_length": 2048,
+  "maximum_answer_tokens": 160
+}

@@ -1,0 +1,7 @@
+{
+  "reason": "User now requires all selected sources to exclude empty labels and requests qwen3vl environment reuse",
+  "status": "superseded; do not use mixed-sample model results as positive-only validation",
+  "old_data_root": "datasets/landslide_lens_v1",
+  "archived_data_root": "outputs/history/mixed-samples-v1/prepared-data",
+  "model_selection_and_test": "multiview completed; RGB interrupted; final test not started"
+}

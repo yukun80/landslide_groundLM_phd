@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 【中文导读｜阅读第 4 步】
+# 本文件：把单条图文样本变成数字输入，找出要学习的回答位置，并对齐正确区域。
+# 怎么读：encode_sample 是主线；多图时每个区域默认归属其前面最近的一张图片，截断时不能只留半张图片的占位符。
+# 完整路线与概念解释见仓库最外层 docs/xiaomi-lens-0/README.md（不是本算法子目录）。
+
 """Per-sample preprocess for the lazy data pipeline.
 
 `encode_sample` produces the per-sample tensor dict consumed by
@@ -67,6 +72,8 @@ _stray_mask_warn_budget = 20
 _truncated_image_warn_budget = 20
 
 
+# 【步骤说明】接收一条图文标注，依次整理对话、读取图片、转数字、截断、确定回答位置和区域归属；返回单条训练输入，无法处理时返回 None。
+# 对照参数：sample, processor, mask_token_id, model_max_length, max_pixels, min_pixels, image_token_reserve；下面保留原始英文说明与类型，方便对应调用处。
 def encode_sample(
     sample: dict,
     *,
@@ -83,6 +90,7 @@ def encode_sample(
         render_prompt_and_completion,
     )
 
+    # 步骤 1：先整理对话与图片路径。训练第一阶段可能只有助手答案，辅助函数会补齐用户图片消息。
     image_paths = list(sample.get("images") or [])
     sample_id = sample.get("_dataset_name")
 
@@ -129,6 +137,8 @@ def encode_sample(
     # So divide an image-token BUDGET among the sample's images instead. A
     # single-image sample keeps the full `max_pixels` (budget ≥ one image's cap);
     # only multi-image samples shrink, and just enough to fit.
+    # 步骤 2：分配图片占用的序列预算。图片越大，需要的小块和占位符越多。
+    # 多张图共用总长度，因此这里按图片数量分摊上限，同时给文字预留位置。
     image_processor_kwargs = {}
     if min_pixels is not None:
         image_processor_kwargs["min_pixels"] = min_pixels
@@ -165,6 +175,8 @@ def encode_sample(
     completion_ids = np.asarray(completion_inputs["input_ids"][0], dtype=np.int64)
     completion_mask = np.asarray(completion_inputs["attention_mask"][0], dtype=np.int64)
 
+    # 步骤 3：把已知问题与正确回答连起来。训练时模型能看到前面的正确词，学习预测下一个词。
+    # 这与使用时从自己的预测继续生成不同，不应把训练回答误认为模型自由生成结果。
     input_ids = np.concatenate([prompt_ids, completion_ids])
     attention_mask = np.concatenate([prompt_mask, completion_mask])
     mm_token_type_ids = np.concatenate([
@@ -196,6 +208,8 @@ def encode_sample(
         else []
     )
     g = len(gen_prefix)
+    # 步骤 4：标出哪些文字位置参与学习。问题部分先设为 -100，再恢复各轮助手回答。
+    # 模板自动提供的生成前缀不应该当作模型需要学会生成的正文。
     labels = input_ids.copy()
     labels[:prompt_length] = -100
     for span_start, span_end in assistant_spans:
@@ -209,6 +223,8 @@ def encode_sample(
     # Keep the pre-truncation stream: `mask_positions` must be scanned on it,
     # so a `<|mask|>` that right-truncation drops still occupies its slot k and
     # `segmentation[k]` stays aligned (the slot is then marked invalid below).
+    # 步骤 5：保留截断前的原序列，确保第 k 个区域仍对应 segmentation[k]。
+    # 被截掉的区域会标为无效，不能直接从列表删除，否则后面的标注就错位了。
     full_input_ids = input_ids
 
     if input_ids.shape[0] > model_max_length:
@@ -246,6 +262,7 @@ def encode_sample(
     # The scan is CONFINED to assistant spans: a `<|mask|>` echoed into a
     # user/system turn is not something the model emits, and counting it
     # would shift every later `segmentation[k]` onto the wrong token.
+    # 步骤 6：只在助手回答中寻找区域标记。用户引用同样的符号不代表模型输出了区域。
     if assistant_spans:
         in_assistant = np.zeros(full_input_ids.shape[0], dtype=bool)
         for span_start, span_end in assistant_spans:
@@ -278,6 +295,8 @@ def encode_sample(
     # un-truncated stream; for any slot that survives truncation the prefix is
     # identical either way, so the model can re-derive the same value at
     # inference from its own `input_ids` (see `_decode_pixel_masks`).
+    # 步骤 7：为每个区域找到其前面最近的图片，并记录那张图片自己的网格尺寸。
+    # 多图大小不同，正确区域必须与自己的图片对齐，而不是全都按第一张图缩放。
     num_images = int(image_grid_thw.shape[0])
     vision_start_id = processor.tokenizer.convert_tokens_to_ids(
         processor.vision_start_token
@@ -297,6 +316,8 @@ def encode_sample(
         for i in mask_image_index
     ]
 
+    # 步骤 8：把正确区域缩放到对应模型画布，用位打包减少传输体积。
+    # 一个字节装 8 个 0/1 像素；训练器稍后再展开，这种压缩不改变区域含义。
     mask_pixel_masks: list[bytes] = []
     if pil_images and sample.get("segmentation") is not None and mask_positions.shape[0] > 0:
         from .segmentation import segmentation_to_pixel_mask, split_segmentation_masks
@@ -352,6 +373,8 @@ def encode_sample(
     return out
 
 
+# 【步骤说明】根据图片小块边长和合并倍数计算一个图像文字位置覆盖多少源像素；返回面积，默认例子为 (16×2)²=1024。
+# 对照参数：processor；下面保留原始英文说明与类型，方便对应调用处。
 def _pixels_per_token(processor) -> int:
     """How many source pixels one `<|image_pad|>` token stands for.
 
@@ -367,6 +390,8 @@ def _pixels_per_token(processor) -> int:
     return int(ps) * int(ps) * int(merge) * int(merge)
 
 
+# 【步骤说明】接收文字序列、长度上限和图片网格；把截断点退到完整图片边界，返回保留文字长度和保留图片数。
+# 对照参数：full_input_ids, model_max_length, image_grid_thw, processor, sample_id；下面保留原始英文说明与类型，方便对应调用处。
 def _truncate_keeping_whole_images(
     full_input_ids: np.ndarray,
     *,
@@ -433,6 +458,8 @@ def _truncate_keeping_whole_images(
     return end, n_keep
 
 
+# 【步骤说明】扫描对话起止标记，定位每一轮助手回答的内容区间；返回起止位置列表，让历史回答也参与学习。
+# 对照参数：input_ids, tokenizer；下面保留原始英文说明与类型，方便对应调用处。
 def _assistant_spans(input_ids: np.ndarray, tokenizer) -> list[tuple[int, int]]:
     """Locate every assistant turn's body span in a ChatML token stream.
 
@@ -478,6 +505,8 @@ def _assistant_spans(input_ids: np.ndarray, tokenizer) -> list[tuple[int, int]]:
     return spans
 
 
+# 【步骤说明】将按位打包的正确区域还原成像素数组；返回展开结果，是训练器在设备上解包过程的 CPU 参照。
+# 对照参数：packed, shapes；下面保留原始英文说明与类型，方便对应调用处。
 def _unpack_masks(packed: list[bytes], shapes: list[tuple[int, int]]) -> list[np.ndarray]:
     out: list[np.ndarray] = []
     for blob, (h, w) in zip(packed, shapes):

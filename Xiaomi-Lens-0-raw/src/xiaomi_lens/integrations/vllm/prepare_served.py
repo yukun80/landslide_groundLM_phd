@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 【中文导读｜阅读第 7 步】
+# 本文件：在独立输出目录准备服务所需的模型文件视图，兼容文字服务与区域服务两种加载方式。
+# 怎么读：先看 prepare；文字服务可能去除区域权重，区域服务必须保留。输出目录不要设成源模型目录。
+# 完整路线与概念解释见仓库最外层 docs/xiaomi-lens-0/README.md（不是本算法子目录）。
+
 """Prepare checkpoint views for Xiaomi-Lens-0's vLLM launchers.
 
 The default mode prepares indexed safetensors shards for the text server:
@@ -49,6 +54,8 @@ from pathlib import Path
 DROP_PREFIXES = ("mask_decoder.",)      # Omit mask weights from the text-server view.
 
 
+# 【步骤说明】判断某个权重是否应保留给文字服务；区域权重被排除，只有共享词嵌入时才去除重复输出层权重。
+# 对照参数：key, drop_lm_head；下面保留原始英文说明与类型，方便对应调用处。
 def keep_key(key: str, *, drop_lm_head: bool) -> bool:
     """Whether a Xiaomi-Lens-0 tensor belongs in the text-server view.
 
@@ -62,6 +69,8 @@ def keep_key(key: str, *, drop_lm_head: bool) -> bool:
     return not (key == "lm_head.weight" and drop_lm_head)
 
 
+# 【步骤说明】读取分词器设置并修正服务兼容项，返回新字典；不直接覆盖来源文件。
+# 对照参数：src；下面保留原始英文说明与类型，方便对应调用处。
 def _corrected_tokenizer_config(src: Path) -> dict:
     d = json.loads(src.read_text())
     d["tokenizer_class"] = "Qwen2Tokenizer"
@@ -70,6 +79,8 @@ def _corrected_tokenizer_config(src: Path) -> dict:
     return d
 
 
+# 【步骤说明】从一份权重分片挑出文字服务需要的参数并写到目标位置；返回保留与删除的参数项数。
+# 对照参数：src, dst, drop_lm_head；下面保留原始英文说明与类型，方便对应调用处。
 def _rewrite_shard(src: Path, dst: Path, *, drop_lm_head: bool) -> tuple[int, int]:
     from safetensors import safe_open
     from safetensors.torch import save_file
@@ -86,6 +97,8 @@ def _rewrite_shard(src: Path, dst: Path, *, drop_lm_head: bool) -> tuple[int, in
     return len(kept), dropped
 
 
+# 【步骤说明】从模型设置读取输入词表与输出层是否共用权重，返回真假，用于避免错误删除非共享输出层。
+# 对照参数：checkpoint；下面保留原始英文说明与类型，方便对应调用处。
 def _tie_word_embeddings(checkpoint: Path) -> bool:
     """Read the checkpoint's tie_word_embeddings (default True, as Qwen HF does)."""
     cfg = json.loads((checkpoint / "config.json").read_text())
@@ -94,6 +107,8 @@ def _tie_word_embeddings(checkpoint: Path) -> bool:
     return bool(text_cfg.get("tie_word_embeddings", cfg.get("tie_word_embeddings", True)))
 
 
+# 【步骤说明】接收源模型和独立输出目录，生成适合服务加载的文件；返回输出目录，文字模式可重写分片，区域模式保留所有权重。
+# 对照参数：checkpoint, out, tokenizer_only；下面保留原始英文说明与类型，方便对应调用处。
 def prepare(checkpoint: Path, out: Path, *, tokenizer_only: bool = False) -> Path:
     """Materialize a vLLM-servable view of `checkpoint` under `out`.
 
@@ -107,6 +122,8 @@ def prepare(checkpoint: Path, out: Path, *, tokenizer_only: bool = False) -> Pat
     checkpoint = checkpoint.resolve()  # so symlink targets are absolute, not relative to `out`
     out.mkdir(parents=True, exist_ok=True)
     index_name = "model.safetensors.index.json"
+    # 输入与输出词表共享时，重复输出层可从文字服务视图移除；不共享时不能删除。
+    # 这个判断只针对服务副本，不是修改原模型的算法或学习内容。
     drop_lm_head = _tie_word_embeddings(checkpoint)
 
     index_path = checkpoint / index_name
@@ -144,6 +161,7 @@ def prepare(checkpoint: Path, out: Path, *, tokenizer_only: bool = False) -> Pat
     return out
 
 
+# 【运行入口】读取来源与独立输出目录，按文字或区域模式准备服务视图，返回成功退出状态。
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--checkpoint", type=Path, required=True)

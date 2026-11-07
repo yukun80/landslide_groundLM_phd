@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 【中文导读｜阅读第 7 步】
+# 本文件：向 vLLM 登记本项目的自定义模型类，让服务能找到它。
+# 怎么读：登记不是加载权重；实际加载与运行由服务框架调用。
+# 完整路线与概念解释见仓库最外层 docs/xiaomi-lens-0/README.md（不是本算法子目录）。
+
 """vLLM general-plugin entry point for Xiaomi-Lens-0.
 
 Registered via `pyproject.toml` under `[project.entry-points."vllm.general_plugins"]`.
@@ -28,6 +33,7 @@ entry point cheap to load.
 from __future__ import annotations
 
 
+# 【步骤说明】向 vLLM 的模型注册表登记本项目模型名称与位置；无返回值，之后工作进程可据此加载。
 def register() -> None:
     from vllm import ModelRegistry
 

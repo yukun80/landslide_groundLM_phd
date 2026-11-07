@@ -1,3 +1,5 @@
+> 中文学习导读：先看[学习指南](../../../docs/xiaomi-lens-0/README.md)与[完整代码树](../../../docs/xiaomi-lens-0/map/README.md)。本页保留原项目说明；本训练示例的字段逐项解释见[配置与示例详解](../../../docs/xiaomi-lens-0/config/README.md)。
+
 # 训练数据格式
 
 [English](README.md) | 简体中文

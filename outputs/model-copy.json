@@ -1,0 +1,66 @@
+{
+  "source": "/home/yukun80/codes/Xiaomi-Lens-0/checkpoints/Xiaomi-Lens-0",
+  "target": "/home/yukun80/codes/landslide_groundLM_phd/checkpoints/Xiaomi-Lens-0",
+  "files": [
+    {
+      "file": "LICENSE",
+      "sha256": "312492388fa168cd35c559afe2ba202e57ea4dc02824e826b5db96d2974279e6",
+      "bytes": 11381
+    },
+    {
+      "file": "LOCAL_PROVENANCE.json",
+      "sha256": "e64d1ed727023d6fa94061b4997001205b0ef0617c6a4870479662b137ade69e",
+      "bytes": 2463
+    },
+    {
+      "file": "chat_template.jinja",
+      "sha256": "a4aee8afcf2e0711942cf848899be66016f8d14a889ff9ede07bca099c28f715",
+      "bytes": 7756
+    },
+    {
+      "file": "config.json",
+      "sha256": "c7700d967b39ecafc30179ff2d386e34edbadd94c87d662e2c1495e9228fbf0c",
+      "bytes": 3117
+    },
+    {
+      "file": "generation_config.json",
+      "sha256": "8f094695b0ddd9f6a25294a2984a5978dd212e31ef67d2ce428744e1a87d0c3f",
+      "bytes": 163
+    },
+    {
+      "file": "model-00001-of-00003.safetensors",
+      "sha256": "dbba202ca511f01f2f96980552ff01afcd13f6dc2519c38d6eb07217e77e95dd",
+      "bytes": 3716238728
+    },
+    {
+      "file": "model-00002-of-00003.safetensors",
+      "sha256": "7473041185b1e2648a15156fb5b11cff9805d4ef5da0481ec4a2726e8bb7a25b",
+      "bytes": 4995454312
+    },
+    {
+      "file": "model-00003-of-00003.safetensors",
+      "sha256": "055c79154acf658b3356d5d6e2691e76864aebe94d4a9fd6fbed874ab43b840c",
+      "bytes": 532687040
+    },
+    {
+      "file": "model.safetensors.index.json",
+      "sha256": "f4e33dd494d1711f24b766f8583fb2fe9ec258bca524e12064da30946f8b2a0b",
+      "bytes": 68344
+    },
+    {
+      "file": "processor_config.json",
+      "sha256": "f984c51c5a4ff8a2096b37b34c6fe5c4d80abbf111d13bf0d0cb4b8b039ff670",
+      "bytes": 1242
+    },
+    {
+      "file": "tokenizer.json",
+      "sha256": "e88b82e6740f387efc9d6db27f42de96b50d9713305c3678745f094ffaca06bb",
+      "bytes": 19989517
+    },
+    {
+      "file": "tokenizer_config.json",
+      "sha256": "c659d66a717e5c8e0246a65f3d54912d6e22a8f15804b42f18279c1d3d528290",
+      "bytes": 1186
+    }
+  ]
+}

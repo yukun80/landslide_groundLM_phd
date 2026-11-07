@@ -1,4 +1,6 @@
 #!/bin/bash
+# 【中文导读】阅读第 7 步：启动负责生成像素区域的服务，默认端口 8001；与文字服务采用相同图片处理大小。
+# 从路径设置 → 设备设置 → 启动命令阅读。完整解释见仓库最外层 docs/xiaomi-lens-0/README.md 与 docs/xiaomi-lens-0/config/README.md。
 # Copyright 2026 Xiaomi Corporation.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -45,8 +47,10 @@
 #
 # Usage:
 #   PORT=8001 bash run_vllm_mask.sh SeerRay-Lab/Xiaomi-Lens-0 [extra vllm args...]   # or a local checkpoint dir
+# 步骤：遇到命令失败、未设置变量或管道错误就停止，避免继续使用不完整设置。
 set -euo pipefail
 
+# 步骤：读取模型位置；本地目录不存在时，下方代码会把它当在线模型名称下载。
 CKPT="${1:?usage: run_vllm_mask.sh <checkpoint_dir|hf_repo_id> [extra vllm args...]}"
 shift || true
 
@@ -56,11 +60,13 @@ if [[ ! -d "${CKPT}" ]]; then
     CKPT="$(python3 -c 'import sys; from huggingface_hub import snapshot_download; print(snapshot_download(sys.argv[1]))' "${CKPT}")"
 fi
 
+# 步骤：设置对外模型名称和端口；客户端请求使用此名称，不是直接传模型目录。
 SERVED_NAME="${SERVED_NAME:-xiaomi-lens}"
 PORT="${PORT:-8001}"          # default off :8000 so it can coexist with the text serve
 # By default vLLM reads max_pixels from the checkpoint's processor_config.json.
 # Set MAX_PIXELS only for an intentional override; both serves must use the same
 # value.
+# 步骤：可选地覆盖图片像素上限；两个服务必须一致，否则区域位置可能无法与文字对应。
 MAX_PIXELS="${MAX_PIXELS:-}"
 MM_PROCESSOR_ARGS=()
 if [[ -n "${MAX_PIXELS}" ]]; then
@@ -78,7 +84,9 @@ SRC_ROOT="$( cd "${HERE}/../../.." && pwd )"   # .../src, so `xiaomi_lens` is im
 # read-only venv instead of installed, make the source importable and add a tiny
 # per-launch metadata overlay only when the installed environment lacks our entry
 # points. EngineCore children inherit PYTHONPATH and discover the same overlay.
+# 步骤：让当前进程和后续子进程都能找到本项目模块。
 export PYTHONPATH="${SRC_ROOT}${PYTHONPATH:+:${PYTHONPATH}}"
+# 步骤：检查框架能否发现自定义模型和输入输出处理器；缺失时在临时目录补登记信息。
 if ! python3 - <<'PY'
 from importlib.metadata import entry_points
 
@@ -120,6 +128,7 @@ fi
 # Pure-symlink served view (tokenizer-only). Cache key = hash of the RESOLVED
 # checkpoint path; `pool_` prefix keeps it distinct from the generative path's
 # `xiaomi_lens_served_*` dir (rewritten shards, mask stripped).
+# 步骤：把模型目录变成明确的真实路径，并用其摘要区分缓存，避免同名模型目录互相混淆。
 CKPT_ABS="$( cd "${CKPT}" && pwd -P )"
 CKPT_HASH="$(printf '%s' "${CKPT_ABS}" | cksum | cut -d' ' -f1)"
 SERVED_DIR="${SERVED_DIR:-${TMPDIR:-/tmp}/xiaomi_lens_pool_$(basename "${CKPT_ABS}")_${CKPT_HASH}}"
@@ -129,6 +138,7 @@ if [ ! -e "${SERVED_DIR}/tokenizer_config.json" ]; then
 fi
 echo "[run_vllm_mask] served view (tokenizer-only symlinks): ${SERVED_DIR}"
 
+# 步骤：启动服务并由服务进程接管当前脚本；下方参数分别控制名称、端口和运行方式。
 exec vllm serve "${SERVED_DIR}" \
     --runner pooling \
     --io-processor-plugin xiaomi_lens_mask \

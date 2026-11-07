@@ -1,7 +1,10 @@
+# 【中文导读｜第 7 步】这是安装说明书，不是算法运行入口。
+# 打包构建工具：将 src 中的代码安装成可导入的软件包。
 [build-system]
 requires = ["setuptools>=77.0.3"]
 build-backend = "setuptools.build_meta"
 
+# 软件包名称、版本和基本信息；运行依赖另见 requirements.txt。
 [project]
 name = "xiaomi-lens"
 version = "0.1.0"
@@ -14,6 +17,7 @@ requires-python = ">=3.10"
 # enforced here.
 dependencies = []
 
+# 按用途选择额外依赖：运行服务、评测、训练或训练加速，不必全部装在同一环境。
 [project.optional-dependencies]
 vllm = ["vllm>=0.19.1", "pycocotools", "safetensors"]
 eval = ["pyarrow", "pycocotools", "huggingface_hub"]
@@ -24,13 +28,16 @@ train = ["transformers==5.4.0", "accelerate>=1.13.0", "deepspeed>=0.18.9", "pyya
 # flash-linear-attention / causal-conv1d for Qwen3.5's linear-attention layers.
 train-fast = ["liger-kernel>=0.7.0", "flash-linear-attention>=0.4.2", "causal-conv1d>=1.6.1"]
 
+# 告诉打包工具 infer 模块与 xiaomi_lens 包分别在哪里。
 [tool.setuptools]
 py-modules = ["infer"]
 package-dir = {"" = ".", "xiaomi_lens" = "src/xiaomi_lens"}
 
+# 从 src 开始寻找可安装的 Python 包。
 [tool.setuptools.packages.find]
 where = ["src"]
 
+# 安装时同时携带服务脚本和训练设置文件。
 [tool.setuptools.package-data]
 "xiaomi_lens.integrations.vllm" = ["*.sh"]
 "xiaomi_lens.train" = ["configs/*.json"]
@@ -41,8 +48,10 @@ where = ["src"]
 # two groups register (1) the custom Xiaomi-Lens-0 model that runs PixelMaskDecoder
 # inside vLLM and (2) the IO processor that serializes the dense mask output.
 # Only meaningful in the vLLM-serving environment.
+# 登记自定义模型，vLLM 的每个工作进程都可据此找到它。
 [project.entry-points."vllm.general_plugins"]
 xiaomi_lens_register = "xiaomi_lens.integrations.vllm.plugin:register"
 
+# 登记区域请求的输入输出处理器，负责请求数据与模型数据互相转换。
 [project.entry-points."vllm.io_processor_plugins"]
 xiaomi_lens_mask = "xiaomi_lens.integrations.vllm.io_processor:make_io_processor"

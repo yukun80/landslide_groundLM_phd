@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 【中文导读｜阅读第 5 步】
+# 本文件：衡量预测区域与正确区域的差距：既看整体重叠，也看每个像素是否分对。
+# 怎么读：先看 MaskLoss，再看 DiceLoss、BCEWithLogitsLoss；输入是未变成概率的分数。
+# 完整路线与概念解释见仓库最外层 docs/xiaomi-lens-0/README.md（不是本算法子目录）。
+
 """Mask loss modules — InstructSAM-style dice + sigmoid BCE.
 
 Mirrors `DCDmllm/InstructSAM` (`instructsam/models/utils.py`): the
@@ -39,6 +44,8 @@ import torch.nn.functional as F
 import torch.utils.checkpoint
 
 
+# 【步骤说明】接收本进程的有效区域数，汇总所有进程后返回损失归一化分母；最小为 1，避免没有区域时除零。
+# 对照参数：local_num_masks；下面保留原始英文说明与类型，方便对应调用处。
 def _global_num_masks(local_num_masks: torch.Tensor) -> torch.Tensor:
     """All-reduce ``local_num_masks`` and return the per-rank divisor.
 
@@ -77,9 +84,12 @@ def _global_num_masks(local_num_masks: torch.Tensor) -> torch.Tensor:
     return (t.double() / world_size).clamp_min(1.0).float().reshape(())
 
 
+# 【类的用途】衡量预测区域与正确区域的整体重叠差距；分数越小表示越接近正确区域。
 class DiceLoss(nn.Module):
     """DICE loss on sigmoid probabilities."""
 
+    # 【步骤说明】接收原始分数、0/1 标注和有效范围；内部转概率后计算 1－(2倍重叠+1)/(预测面积+标注面积+1)，返回归一化损失。
+    # 对照参数：inputs, targets, num_masks, valid_mask；下面保留原始英文说明与类型，方便对应调用处。
     def forward(
         self,
         inputs: torch.Tensor,
@@ -93,12 +103,15 @@ class DiceLoss(nn.Module):
             valid = valid_mask.flatten(1)
             probs = probs * valid
             tgt = tgt * valid
+        # 整体重叠：预测越接近正确区域，分子越接近分母，1 减比值越接近 0。
+        # 这里用连续概率计算，不能先切成硬 0/1，否则模型难以得到“该向哪个方向改”的信息。
         numerator = 2 * (probs * tgt).sum(dim=-1)
         denominator = probs.sum(dim=-1) + tgt.sum(dim=-1)
         loss = 1 - (numerator + 1) / (denominator + 1)
         return loss.sum() / num_masks.clamp_min(1.0)
 
 
+# 【类的用途】逐像素检查前景与背景的预测差距，直接接收原始分数，内部才转成概率。
 class BCEWithLogitsLoss(nn.Module):
     """Sigmoid binary cross-entropy on raw logits (InstructSAM-style).
 
@@ -116,6 +129,8 @@ class BCEWithLogitsLoss(nn.Module):
     positions do not dilute the per-mask loss.
     """
 
+    # 【步骤说明】接收原始分数与标签，先按每个区域的有效像素数平均，再按区域数归一化；返回逐像素分类损失。
+    # 对照参数：inputs, targets, num_masks, valid_mask；下面保留原始英文说明与类型，方便对应调用处。
     def forward(
         self,
         inputs: torch.Tensor,
@@ -144,6 +159,7 @@ class BCEWithLogitsLoss(nn.Module):
         return total / num_masks.clamp_min(1.0)
 
 
+# 【类的用途】组合整体重叠与逐像素两种损失，支持有效区域和分块计算。
 class MaskLoss(nn.Module):
     """InstructSAM-style combined mask loss: ``dice_weight * dice + bce_weight * bce``.
 
@@ -162,6 +178,8 @@ class MaskLoss(nn.Module):
     unchunked reference path for parity checks and debugging.
     """
 
+    # 【步骤说明】保存两种评分权重和分块大小，创建评分模块；默认重叠权重 1、逐像素权重 2。 构造完成后通过对象保存这些状态，不返回预测结果。
+    # 对照参数：dice_weight, bce_weight, chunk_size；下面保留原始英文说明与类型，方便对应调用处。
     def __init__(
         self,
         dice_weight: float = 1.0,
@@ -180,6 +198,8 @@ class MaskLoss(nn.Module):
         # still recreate every full-canvas FP32 temporary at the same time.
         self.gradient_checkpointing = False
 
+    # 【步骤说明】核对预测、标注和有效像素形状，按区域分小批计算两种损失并求和；返回一个可反向传播的总分。
+    # 对照参数：pred_masks, targets, valid_mask；下面保留原始英文说明与类型，方便对应调用处。
     def forward(
         self,
         pred_masks: torch.Tensor,
@@ -221,6 +241,8 @@ class MaskLoss(nn.Module):
         # produce skewed gradients under DDP/ZeRO. This stays OUTSIDE the chunk
         # loop — its `all_reduce` must run exactly once per microbatch, not once
         # per chunk or again during checkpoint recomputation.
+        # 多张卡的有效区域数可能不同，所以统一分母，避免某张卡少量区域被赋予过大的相对权重。
+        # 这里的同步只执行一次，不能放进每个分块或反向重算中，否则各进程次序可能不一致。
         num_masks = _global_num_masks(local_num_masks)
 
         num_rows = pred.shape[0]
@@ -228,6 +250,8 @@ class MaskLoss(nn.Module):
             return pred.sum() * 0.0
         chunk_size = num_rows if self.chunk_size <= 0 else min(self.chunk_size, num_rows)
         total = None
+        # 分块只为节省临时存储：各块仍用同一个全局分母，最后相加。
+        # 不要误把各块各自平均再直接相加，那会改变不同块的权重。
         for start in range(0, num_rows, chunk_size):
             end = min(start + chunk_size, num_rows)
             pred_chunk = pred[start:end]
@@ -249,6 +273,8 @@ class MaskLoss(nn.Module):
             total = chunk_loss if total is None else total + chunk_loss
         return total
 
+    # 【步骤说明】将一小批预测和标注临时转成较高精度，计算重叠差距与逐像素差距；返回两项加权结果，供所有小批求和。
+    # 对照参数：pred_masks, targets, valid_mask, num_masks；下面保留原始英文说明与类型，方便对应调用处。
     def _compute_chunk(
         self,
         pred_masks: torch.Tensor,

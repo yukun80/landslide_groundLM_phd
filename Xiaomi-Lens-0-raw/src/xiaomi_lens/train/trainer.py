@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 【中文导读｜阅读第 5 步】
+# 本文件：组织模型加载、可训练部分选择、数据读取、每步损失计算、记录和保存。
+# 怎么读：先看 compute_loss 与 _build_mask_inputs，再看 __init__；训练更新循环继承自外部 Trainer。
+# 完整路线与概念解释见仓库最外层 docs/xiaomi-lens-0/README.md（不是本算法子目录）。
+
 """Xiaomi-Lens-0 trainer.
 
 Responsibilities:
@@ -42,6 +47,7 @@ from ..model.modeling_xiaomi_lens import (
 from .config import XiaomiLensModelConfig, XiaomiLensScriptArguments, XiaomiLensTrainingConfig
 
 
+# 【类的用途】为词嵌入挂接梯度处理，只允许指定新符号行更新。
 class _FreezeNonTrainableEmbedRows:
     """Zero `embed_tokens.weight.grad` on every row except `trainable_token_ids`.
 
@@ -53,6 +59,8 @@ class _FreezeNonTrainableEmbedRows:
     gradient has the full `(V, H)` shape on every rank.
     """
 
+    # 【步骤说明】根据允许学习的词编号构造梯度行掩码，并登记反向传播回调。 构造完成后通过对象保存这些状态，不返回预测结果。
+    # 对照参数：embed_tokens, trainable_token_ids；下面保留原始英文说明与类型，方便对应调用处。
     def __init__(self, embed_tokens, trainable_token_ids: tuple[int, ...]) -> None:
         self._trainable_token_ids = list(trainable_token_ids)
         self._vocab_size: int = embed_tokens.num_embeddings
@@ -79,6 +87,8 @@ class _FreezeNonTrainableEmbedRows:
             tuple(self._trainable_token_ids), self._vocab_size, self._hidden_size,
         )
 
+    # 【步骤说明】接收词嵌入梯度，在支持的完整形状下将其他词行清零并返回；遇到无法对应行的分片形状则警告并返回 None，不执行屏蔽。
+    # 对照参数：grad；下面保留原始英文说明与类型，方便对应调用处。
     def _hook(self, grad: torch.Tensor) -> Optional[torch.Tensor]:
         V, H = self._vocab_size, self._hidden_size
         cache_key = (grad.device, grad.dtype, tuple(grad.shape))
@@ -107,8 +117,11 @@ class _FreezeNonTrainableEmbedRows:
         return grad * keep
 
 
+# 【类的用途】扩展通用训练器，把图文模型与区域标注处理接入原有训练循环。
 class XiaomiLensTrainer(Trainer):
 
+    # 【步骤说明】加载处理器与模型、添加区域符号、设置可训练部分，再构建训练/评估数据和拼批处理器。 构造完成后通过对象保存这些状态，不返回预测结果。
+    # 对照参数：model, script_args, training_args, model_args, train_dataset, eval_dataset, callbacks, optimizers；下面保留原始英文说明与类型，方便对应调用处。
     def __init__(
         self,
         model: Union[str, PreTrainedModel],
@@ -223,6 +236,8 @@ class XiaomiLensTrainer(Trainer):
                 embed_tokens, trainable_token_ids=(self.mask_token_id,)
             )
 
+    # 【步骤说明】只训练区域分支时，关闭冻结主干上无用的重算连接；调整设置以减少不必要的反向计算。
+    # 对照参数：model, training_args；下面保留原始英文说明与类型，方便对应调用处。
     @staticmethod
     def _disable_unneeded_gradient_checkpointing(
         model: PreTrainedModel,
@@ -256,6 +271,8 @@ class XiaomiLensTrainer(Trainer):
                 len(trainable_names),
             )
 
+    # 【步骤说明】对模块中满足条件的参数设置是否参与学习；原地修改标志，不返回预测结果。
+    # 对照参数：module, value, predicate；下面保留原始英文说明与类型，方便对应调用处。
     @staticmethod
     def _set_requires_grad(module, value: bool, predicate=None) -> None:
         if module is None:
@@ -264,6 +281,8 @@ class XiaomiLensTrainer(Trainer):
             if predicate is None or predicate(name):
                 parameter.requires_grad = value
 
+    # 【步骤说明】先冻结全部参数，再按选项开放指定部分；检查共享词表权重的冲突，防止开放与冻结规则互相抵消。
+    # 对照参数：model, model_args；下面保留原始英文说明与类型，方便对应调用处。
     def _apply_param_trainability(
         self,
         model: PreTrainedModel,
@@ -320,6 +339,8 @@ class XiaomiLensTrainer(Trainer):
             self._set_requires_grad(lm_head, True)
 
         embed_tokens = getattr(language_model, "embed_tokens", None) if language_model else None
+        # 新符号行训练与整个词表训练不同：前者只允许指定行更新，后者所有行都能变化。
+        # 输入词表和输出层若共享同一份权重，开放其中一个也影响另一个，因此后面要检查冲突。
         if model_args.unfreeze_embed_tokens:
             if embed_tokens is None:
                 raise ValueError(
@@ -357,6 +378,8 @@ class XiaomiLensTrainer(Trainer):
         if model_args.unfreeze_mask_decoder:
             self._set_requires_grad(model.mask_decoder, True)
 
+    # 【步骤说明】把新增特殊符号的初始表示设为原词表平均值；原地初始化新增行，并处理输入输出共享权重的情况。
+    # 对照参数：model, original_vocab_size；下面保留原始英文说明与类型，方便对应调用处。
     @staticmethod
     def _mean_init_new_token_embeddings(
         model: PreTrainedModel,
@@ -382,6 +405,8 @@ class XiaomiLensTrainer(Trainer):
                 output_mean = output_param.data[:original_vocab_size].mean(dim=0, keepdim=True)
                 output_param.data[original_vocab_size:] = output_mean
 
+    # 【步骤说明】接收模型位置或已有模型及训练设置；加载模型并配置两种损失与计算方式，返回可训练模型。
+    # 对照参数：model_id, training_args, model_args；下面保留原始英文说明与类型，方便对应调用处。
     def _build_model(
         self,
         model_id: Union[str, PreTrainedModel],
@@ -434,6 +459,8 @@ class XiaomiLensTrainer(Trainer):
         # `_disable_unneeded_gradient_checkpointing` has had a chance to run.
         return model_cls.from_pretrained(model_id, config=model_config, **model_init_kwargs)
 
+    # 【步骤说明】把图片像素上限和下限写入图片处理器，兼容不同设置保存形式；原地更新，不读取具体图片。
+    # 对照参数：image_processor, script_args；下面保留原始英文说明与类型，方便对应调用处。
     @staticmethod
     def _configure_image_processor(image_processor, script_args: XiaomiLensScriptArguments) -> None:
         if script_args.max_pixels is not None:
@@ -457,11 +484,14 @@ class XiaomiLensTrainer(Trainer):
             if script_args.max_pixels is not None and hasattr(size, "longest_edge"):
                 size.longest_edge = script_args.max_pixels
 
+    # 【步骤说明】保留样本中不规则的区域信息到 compute_loss 阶段处理，返回输入，避免过早用通用搬运逻辑处理它们。
+    # 对照参数：inputs；下面保留原始英文说明与类型，方便对应调用处。
     def _prepare_inputs(self, inputs):
         # The prepared dataloader already places tensors on device. The ragged
         # `_per_sample_*` metadata is consumed by `compute_loss` as host lists.
         return inputs
 
+    # 【步骤说明】根据数据是否已分片选择正确的批次分配方式，并组合处理器和数据读取进程；返回训练用数据加载器。
     def get_train_dataloader(self):
         from accelerate.data_loader import prepare_data_loader
         from torch.utils.data import DataLoader
@@ -505,8 +535,12 @@ class XiaomiLensTrainer(Trainer):
             use_stateful_dataloader=getattr(acc, "use_stateful_dataloader", False),
         )
 
+    # 【步骤说明】将每条样本的区域位置、所属图片和压缩标注拼成规则数组；返回区域输入字典，记录有效像素以排除补齐部分。
+    # 对照参数：inputs；下面保留原始英文说明与类型，方便对应调用处。
     def _build_mask_inputs(self, inputs) -> dict:
         """Turn the collator's ragged per-sample mask metadata into dense device tensors."""
+        # 准备区域批次：同批样本可以有不同区域数，K 取最大值，小于 K 的样本补空槽。
+        # 所有空槽都必须有有效标记，不能因补齐而被当成“应该预测全背景”的真实样本。
         K = max((len(p) for p in inputs["_per_sample_mask_positions"]), default=0)
         if K == 0:
             return {}
@@ -557,6 +591,8 @@ class XiaomiLensTrainer(Trainer):
 
         # uint8 targets and bool validity are converted to FP32 per chunk
         # inside MaskLoss, keeping the full-canvas tensors compact.
+        # 为整批建立最大画布，但仍为每个区域标记真实高宽。
+        # 正确区域用 uint8 存 0/1，有效范围用 bool，避免所有画布提前转成较大的浮点数组。
         mask_targets = torch.zeros((B, K, max_h, max_w), dtype=torch.uint8, device=device)
         mask_pixel_valid = torch.zeros((B, K, max_h, max_w), dtype=torch.bool, device=device)
         for b, k, ch, cw in slots:
@@ -569,6 +605,8 @@ class XiaomiLensTrainer(Trainer):
                 bytearray().join(blob_parts), dtype=torch.uint8
             ).to(device)
             shifts = torch.arange(7, -1, -1, dtype=torch.uint8, device=device)
+            # 按位展开：例如一个字节 160 的二进制为 10100000，按从高位到低位还原为 8 个像素。
+            # 每张图不足 8 的尾部补位不属于真实像素，后面按 ch*cw 截取。
             bits = ((packed_t.unsqueeze(1) >> shifts) & 1).flatten()
             bit_off = 0
             for b, k, ch, cw, nbytes in blob_slots:
@@ -584,10 +622,14 @@ class XiaomiLensTrainer(Trainer):
             "mask_pixel_valid": mask_pixel_valid,
         }
 
+    # 【步骤说明】把文字、图片和解包后的正确区域送入模型，取得并记录两种损失；按调用要求返回总损失或总损失与模型输出。
+    # 对照参数：model, inputs, return_outputs, num_items_in_batch；下面保留原始英文说明与类型，方便对应调用处。
     def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
         device = self.accelerator.device
         mask_inputs = self._build_mask_inputs(inputs)
 
+        # 【步骤说明】把非空数组搬到当前计算设备，返回搬运结果；空值和零元素数组统一返回 None。
+        # 对照参数：value；下面保留原始英文说明与类型，方便对应调用处。
         def _to_device(value):
             if value is None or (hasattr(value, "numel") and value.numel() == 0):
                 return None
@@ -600,6 +642,8 @@ class XiaomiLensTrainer(Trainer):
             ),
             1,
         )
+        # 训练的一次计算从这里进入核心模型：输入既有图片问题，也有用于评分的正确回答和区域。
+        # 返回损失后，父类训练循环负责求梯度和更新参数；本函数负责把模型要用的数据组织好。
         model_output = model(
             input_ids=inputs["input_ids"].to(device),
             attention_mask=inputs["attention_mask"].to(device),
@@ -631,6 +675,8 @@ class XiaomiLensTrainer(Trainer):
                     self._metrics[f"_{key}_step_fraction"].append(step_fraction)
         return (loss, model_output) if return_outputs else loss
 
+    # 【步骤说明】评估训练样本时复用相同的区域准备与损失计算，关闭梯度；返回损失和按需要保留的文字预测。
+    # 对照参数：model, inputs, prediction_loss_only, ignore_keys；下面保留原始英文说明与类型，方便对应调用处。
     def prediction_step(
         self,
         model,
@@ -661,6 +707,7 @@ class XiaomiLensTrainer(Trainer):
             logits = logits.detach()
         return loss.detach().mean(), logits, None
 
+    # 【步骤说明】按固定顺序汇总所有进程记录的文字与区域损失，返回用于日志的平均值，避免只报告某一张卡的情况。
     def _distributed_metric_means(self) -> dict[str, float]:
         """Aggregate `lm_loss` / `mask_loss` with the same semantics as HF's logged loss.
 
@@ -704,6 +751,8 @@ class XiaomiLensTrainer(Trainer):
                 metrics[key] = total / count
         return metrics
 
+    # 【步骤说明】接收当前记录，加入分项损失、时间、进度与显存占用，再交给父类输出并清空临时统计。
+    # 对照参数：logs, start_time；下面保留原始英文说明与类型，方便对应调用处。
     def log(self, logs, start_time=None):
         metrics = self._distributed_metric_means()
 
@@ -744,6 +793,8 @@ class XiaomiLensTrainer(Trainer):
         super().log({**logs, **metrics, **extra}, start_time)
         self._metrics.clear()
 
+    # 【步骤说明】把秒数转换成时分秒或分秒的可读文字并返回。
+    # 对照参数：seconds；下面保留原始英文说明与类型，方便对应调用处。
     @staticmethod
     def _format_duration(seconds: float) -> str:
         h, remainder = divmod(int(seconds), 3600)
@@ -752,6 +803,8 @@ class XiaomiLensTrainer(Trainer):
             return f"{h}h {m:02d}m {s:02d}s"
         return f"{m}m {s:02d}s"
 
+    # 【步骤说明】把当前模型、处理器和训练设置写到输出目录，形成之后可以继续训练或预测的文件。
+    # 对照参数：output_dir, state_dict；下面保留原始英文说明与类型，方便对应调用处。
     def _save(self, output_dir: Optional[str] = None, state_dict: Optional[dict] = None) -> None:
         output_dir = output_dir if output_dir is not None else self.args.output_dir
         os.makedirs(output_dir, exist_ok=True)

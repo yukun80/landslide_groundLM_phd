@@ -1,0 +1,172 @@
+{
+  "infer.py": [
+    "2",
+    "单张图片的完整使用入口。把图片和问题交给模型，先获得文字，再把回答中的区域画到图片上。",
+    "从 main 开始，按 build_inputs → generate_completion → run_forward → visualize_pixel_mask 跟读。"
+  ],
+  "train.py": [
+    "5",
+    "训练总入口：读取训练选项、确定数据来源、创建训练器，并启动或继续训练。",
+    "先看 main，再回头看恢复训练的检查；真正的一步训练在 train/trainer.py。"
+  ],
+  "eval/run.py": [
+    "6",
+    "在 LensBench 上逐张预测、与人工标注比较并汇总分数，也支持分卡执行和比较两种结果缩放方式。",
+    "先看 score_masks、summarize，再看 main；最后读并行与 vLLM 部分。这里的 Prec@0.5 按区域重叠计分，不要直接当作文字框坐标的评分。"
+  ],
+  "examples/train/make_toy_data.py": [
+    "4",
+    "画简单形状，并生成对应的问题、答案和区域标注，用于理解数据格式与检查训练流程。",
+    "先看 draw_image，再看 stage1_row、stage2_rows；这些人造图形不是正式效果评测。"
+  ],
+  "tools/prepare_base_model.py": [
+    "7",
+    "检查并可选地统一基础模型的边界框特殊符号名称，不重新训练或改写模型权重。",
+    "默认只检查；--in-place 才写入分词器文件。先看 inspect_model，再看 rewrite_model。"
+  ],
+  "src/xiaomi_lens/constants.py": [
+    "2",
+    "集中存放特殊符号和默认生成长度，供推理与训练共用。",
+    "MASK_TOKEN 是文字中的区域标记；它不是一张图片，模型需要另一步把它解释为区域。"
+  ],
+  "src/xiaomi_lens/model/config.py": [
+    "3",
+    "从基础模型的设置中取出文字和图像宽度，构造区域解码器需要的尺寸设置。",
+    "先看 get_qwen_vision_config，再看 build_mask_decoder_config；不同宽度必须通过投影对齐。"
+  ],
+  "src/xiaomi_lens/model/modeling_xiaomi_lens.py": [
+    "3",
+    "把基础图文模型与区域解码器接起来，是理解算法的核心文件。",
+    "先看 forward 的主线，再看 _prepare_multimodal_inputs 和 _decode_pixel_masks。基础 Qwen 的内部层在 transformers 中。"
+  ],
+  "src/xiaomi_lens/model/pixel_mask_decoder.py": [
+    "3",
+    "把目标的文字状态与图片各位置的特征结合，输出每个像素属于目标的原始分数。",
+    "先看 PixelMaskDecoder.forward，再看构造函数；注意力加速和分块反向传播最后读。"
+  ],
+  "src/xiaomi_lens/model/losses.py": [
+    "5",
+    "衡量预测区域与正确区域的差距：既看整体重叠，也看每个像素是否分对。",
+    "先看 MaskLoss，再看 DiceLoss、BCEWithLogitsLoss；输入是未变成概率的分数。"
+  ],
+  "src/xiaomi_lens/model/lm_loss.py": [
+    "5",
+    "衡量下一个文字单元是否预测正确，同时提供节省显存的等价计算路径。",
+    "先理解 shift_labels_flat 的错一位对齐，再看 _causal_lm_loss；加速路径不改变学习目标。"
+  ],
+  "src/xiaomi_lens/train/config.py": [
+    "5",
+    "定义训练、数据和模型三个方面可调整的选项及默认值。",
+    "与两个训练脚本对照：脚本传入的值可以覆盖这里的默认值。"
+  ],
+  "src/xiaomi_lens/train/trainer.py": [
+    "5",
+    "组织模型加载、可训练部分选择、数据读取、每步损失计算、记录和保存。",
+    "先看 compute_loss 与 _build_mask_inputs，再看 __init__；训练更新循环继承自外部 Trainer。"
+  ],
+  "src/xiaomi_lens/train/collator.py": [
+    "4",
+    "把多条长短不同的样本临时加工并拼成一批；失败样本会记录并跳过。",
+    "先看 __call__；补齐文字长度不等于添加真实内容，labels=-100 的位置不计文字损失。"
+  ],
+  "src/xiaomi_lens/train/sampler.py": [
+    "5",
+    "决定每一轮如何打乱、分组和分配样本，使各训练进程得到自己的批次。",
+    "先看 BatchSamplerShard.__iter__；分组主要减少无用补齐，不是学习图像特征。"
+  ],
+  "src/xiaomi_lens/train/preflight.py": [
+    "5",
+    "训练开始前整理数据规模、可训练参数和训练设置，让人先核对任务是否符合预期。",
+    "build_preflight_report 是入口；报告是配置检查，不是模型效果证明。"
+  ],
+  "src/xiaomi_lens/train/data/io.py": [
+    "4",
+    "读取数据清单，把样本文件和图片位置整理成统一形式。",
+    "先看 DatasetEntry 和 load_dataset_config；清单中的相对路径以清单所在目录为起点。"
+  ],
+  "src/xiaomi_lens/train/data/jsonl_index.py": [
+    "4",
+    "只记住每条样本在文件中的位置，需要时再读取，避免一次载入全部数据。",
+    "先看 scan_jsonl_offsets → JsonlIndexShard.get → JsonlIndexDataset.__getitem__。"
+  ],
+  "src/xiaomi_lens/train/data/render.py": [
+    "4",
+    "把不同来源的对话整理成模型认识的格式，并对齐图片占位符。",
+    "先看 render_prompt_and_completion；用户的提问和助手的答案在训练中扮演不同角色。"
+  ],
+  "src/xiaomi_lens/train/data/preprocess.py": [
+    "4",
+    "把单条图文样本变成数字输入，找出要学习的回答位置，并对齐正确区域。",
+    "encode_sample 是主线；多图时每个区域默认归属其前面最近的一张图片，截断时不能只留半张图片的占位符。"
+  ],
+  "src/xiaomi_lens/train/data/segmentation.py": [
+    "4",
+    "把压缩存储的区域标注还原成黑白像素图，并缩放到模型处理图片的大小。",
+    "先看 decode_coco_rle，再看 segmentation_to_pixel_mask；标注缩放用最近邻，避免产生不存在的中间类别。"
+  ],
+  "src/xiaomi_lens/train/data/sft_format.py": [
+    "4",
+    "把框坐标与区域标记拼成训练答案，保证文字中的区域顺序与标注一致。",
+    "从 build_completion 跟到 mask_block；坐标采用 0～1000 的相对刻度。"
+  ],
+  "src/xiaomi_lens/integrations/vllm/client.py": [
+    "7",
+    "向文字服务请求回答，再把同一图片和生成结果送给区域服务，并保存叠加图。",
+    "main 串联两个服务；保留实际生成的数字编号，避免文字重新编码后对应错位。"
+  ],
+  "src/xiaomi_lens/integrations/vllm/io_processor.py": [
+    "7",
+    "把外部区域请求转换成模型输入，再把模型输出转换为可传输的图片或区域编码。",
+    "pre_process 负责进入，post_process 负责返回；原图大小与模型画布大小是两个概念。"
+  ],
+  "src/xiaomi_lens/integrations/vllm/vllm_model.py": [
+    "7",
+    "在 vLLM 的模型中接入相同的区域解码器，收集图片特征并按请求生成区域。",
+    "先看 decode_mask_batch，再看收集特征的两个小函数；这里预期每个请求只有一张图片。"
+  ],
+  "src/xiaomi_lens/integrations/vllm/plugin.py": [
+    "7",
+    "向 vLLM 登记本项目的自定义模型类，让服务能找到它。",
+    "登记不是加载权重；实际加载与运行由服务框架调用。"
+  ],
+  "src/xiaomi_lens/integrations/vllm/mask_service.py": [
+    "7",
+    "提供一个使用普通模型加载方式的 HTTP 区域服务，接收图片、问题和已生成文字。",
+    "这是独立的备选服务；当前 client.py 默认调用的是 vLLM 的 /pooling，不是这里的 /decode_mask。"
+  ],
+  "src/xiaomi_lens/integrations/vllm/prepare_served.py": [
+    "7",
+    "在独立输出目录准备服务所需的模型文件视图，兼容文字服务与区域服务两种加载方式。",
+    "先看 prepare；文字服务可能去除区域权重，区域服务必须保留。输出目录不要设成源模型目录。"
+  ],
+  "src/xiaomi_lens/__init__.py": [
+    "2",
+    "提供软件包入口，只有访问具体名字时才加载对应模块。",
+    "先了解这个目录提供什么，随后去具体实现文件阅读；__init__.py 不是训练起点。"
+  ],
+  "src/xiaomi_lens/model/__init__.py": [
+    "3",
+    "对外提供模型、解码器和损失类，并延迟导入较重的依赖。",
+    "先了解这个目录提供什么，随后去具体实现文件阅读；__init__.py 不是训练起点。"
+  ],
+  "src/xiaomi_lens/train/__init__.py": [
+    "5",
+    "对外提供训练器和训练设置，按需加载以降低导入成本。",
+    "先了解这个目录提供什么，随后去具体实现文件阅读；__init__.py 不是训练起点。"
+  ],
+  "src/xiaomi_lens/train/data/__init__.py": [
+    "4",
+    "汇总数据相关的对外名称，调用时再去相应文件查找实现。",
+    "先了解这个目录提供什么，随后去具体实现文件阅读；__init__.py 不是训练起点。"
+  ],
+  "src/xiaomi_lens/integrations/__init__.py": [
+    "7",
+    "标记外部工具适配目录，本文件没有算法计算。",
+    "先了解这个目录提供什么，随后去具体实现文件阅读；__init__.py 不是训练起点。"
+  ],
+  "src/xiaomi_lens/integrations/vllm/__init__.py": [
+    "7",
+    "标记 vLLM 适配包，具体加载、服务和调用逻辑在相邻文件。",
+    "先了解这个目录提供什么，随后去具体实现文件阅读；__init__.py 不是训练起点。"
+  ]
+}

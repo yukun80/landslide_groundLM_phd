@@ -1,12 +1,16 @@
 #!/bin/bash
+# 【中文导读】阅读第 5 步：第一阶段只学习区域解码器和区域符号表示，关闭文字损失；这里是启动配方，实际训练在 train.py。
+# 从路径设置 → 设备设置 → 启动命令阅读。完整解释见仓库最外层 docs/xiaomi-lens-0/README.md 与 docs/xiaomi-lens-0/config/README.md。
 # Stage 1: train the PixelMaskDecoder and the <|mask|> embedding row on
 # mask loss only. The ViT, LLM, lm_head and all other embedding rows stay frozen.
 #
 # Usage:
 #   MODEL_PATH=/path/to/prepared/Qwen3.5-4B DATA_CONFIG=/path/to/stage1.yaml \
 #       bash scripts/train_stage1.sh [extra train.py args...]
+# 步骤：遇到命令失败、未设置变量或管道错误就停止，避免继续使用不完整设置。
 set -euo pipefail
 
+# 步骤：定位代码根目录并进入，后面的相对路径由此解释。
 REPO_HOME="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 cd "${REPO_HOME}"
 
@@ -22,6 +26,7 @@ mkdir -p "${OUTPUT_DIR}"
 # Single node by default with all visible GPUs. For multi-node, set NNODES,
 # NODE_RANK and MASTER_ADDR on each node (and optionally NPROC_PER_NODE,
 # MASTER_PORT).
+# 步骤：设置每台机器的进程数和机器编号；通常一张 GPU 对应一个训练进程。
 NPROC_PER_NODE="${NPROC_PER_NODE:-$(nvidia-smi --list-gpus | wc -l | tr -d ' ')}"
 NNODES="${NNODES:-1}"
 NODE_RANK="${NODE_RANK:-0}"
@@ -34,6 +39,7 @@ if [[ "${NNODES}" -gt 1 && -z "${MASTER_ADDR}" ]]; then
 fi
 MASTER_ADDR="${MASTER_ADDR:-127.0.0.1}"
 
+# 步骤：将多进程启动选项保存为数组，保证带空格的参数不会被错误拆开。
 LAUNCHER_ARGS=(
     --nproc_per_node "${NPROC_PER_NODE}"
     --nnodes "${NNODES}"
@@ -49,6 +55,8 @@ LAUNCHER_ARGS=(
 # --gradient_checkpointing on. On tied-embedding models lm_head is
 # embed_tokens, so keep --unfreeze_language_model_head false.
 # --lm_loss_weight -1 disables the LM loss for this stage.
+# 步骤：开始训练：下方连续多行实际属于同一条命令，反斜杠表示续行。
+# 不要在这些续行中间插入普通注释，否则可能截断命令。各选项详解见根目录配置说明。
 python -m torch.distributed.run "${LAUNCHER_ARGS[@]}" train.py \
     --deepspeed "${DEEPSPEED_CONFIG}" \
     --model_name_or_path "${MODEL_PATH}" \

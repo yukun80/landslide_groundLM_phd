@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 【中文导读｜阅读第 4 步】
+# 本文件：把多条长短不同的样本临时加工并拼成一批；失败样本会记录并跳过。
+# 怎么读：先看 __call__；补齐文字长度不等于添加真实内容，labels=-100 的位置不计文字损失。
+# 完整路线与概念解释见仓库最外层 docs/xiaomi-lens-0/README.md（不是本算法子目录）。
+
 """Runtime collator for the lazy JSONL pipeline.
 
 This mirrors ms-swift's large-dataset behavior: keep startup cheap and do
@@ -33,7 +38,10 @@ from .data.preprocess import encode_sample
 logger = logging.getLogger(__name__)
 
 
+# 【类的用途】在取到一批样本后才处理图片与文字，并补齐长度；不在启动时一次处理完整数据集。
 class LazyCollator:
+    # 【步骤说明】保存处理器、区域符号编号和长度像素限制，初始化错误提示计数。 构造完成后通过对象保存这些状态，不返回预测结果。
+    # 对照参数：processor, mask_token_id, model_max_length, max_pixels, min_pixels；下面保留原始英文说明与类型，方便对应调用处。
     def __init__(
         self,
         processor,
@@ -51,6 +59,7 @@ class LazyCollator:
         self._drop_warnings = 0
         self._dummy_warnings = 0
 
+    # 【步骤说明】为整批失败的占位输入寻找可用文字编号，优先补齐符号，再尝试结束或起始符号，最后返回 0。
     def _fallback_token_id(self) -> int:
         tokenizer = getattr(self.processor, "tokenizer", self.processor)
         for attr in ("pad_token_id", "eos_token_id", "bos_token_id"):
@@ -59,6 +68,8 @@ class LazyCollator:
                 return int(value)
         return 0
 
+    # 【步骤说明】从样本中提取来源名称、标签和图文数量，返回简短文字用于错误记录。
+    # 对照参数：row；下面保留原始英文说明与类型，方便对应调用处。
     @staticmethod
     def _sample_tag(row: dict) -> str:
         return (
@@ -68,6 +79,8 @@ class LazyCollator:
             f"messages={len(row.get('messages') or [])}"
         )
 
+    # 【步骤说明】接收原批次大小，构造不含图片且所有标签均忽略的占位批次；返回字典，让多进程训练保持同步而不学习坏样本。
+    # 对照参数：batch_size；下面保留原始英文说明与类型，方便对应调用处。
     def _dummy_batch(self, batch_size: int) -> dict:
         """Return a graph-safe zero-loss batch when every sampled row fails.
 
@@ -88,6 +101,8 @@ class LazyCollator:
             "_per_sample_mask_grid_hw": [[] for _ in range(n)],
         }
 
+    # 【步骤说明】接收原始样本列表，逐条编码、跳过失败记录并补齐成功样本；返回批次字典，全失败时返回零损失占位批次。
+    # 对照参数：features；下面保留原始英文说明与类型，方便对应调用处。
     def __call__(self, features: list[dict]) -> dict:
         encoded: list[dict] = []
         for row in features:
@@ -127,8 +142,12 @@ class LazyCollator:
                 self._dummy_warnings += 1
             return self._dummy_batch(len(features))
 
+        # 同一批次需要规则的长方形数组，因此以最长样本为准在右侧补齐。
+        # attention_mask 的 0 表示补齐位置；labels 的 -100 表示这里不计文字错误。
         max_len = max(len(r["input_ids"]) for r in encoded)
 
+        # 【步骤说明】接收短序列、填充值和目标长度，在右侧补齐并返回新列表；文字补 0，学习标签补 -100。
+        # 对照参数：seq, value, length；下面保留原始英文说明与类型，方便对应调用处。
         def _pad(seq, value, length):
             return list(seq) + [value] * (length - len(seq))
 
@@ -149,6 +168,8 @@ class LazyCollator:
             dtype=torch.long,
         )
 
+        # 图片小块直接按样本顺序连接，并单独保留每张图片网格。
+        # 文字轴的补齐与图片小块轴的连接不同，不能把两个维度混为一谈。
         pixel_chunks = [
             torch.as_tensor(r["pixel_values"])
             for r in encoded

@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 【中文导读｜阅读第 5 步】
+# 本文件：决定每一轮如何打乱、分组和分配样本，使各训练进程得到自己的批次。
+# 怎么读：先看 BatchSamplerShard.__iter__；分组主要减少无用补齐，不是学习图像特征。
+# 完整路线与概念解释见仓库最外层 docs/xiaomi-lens-0/README.md（不是本算法子目录）。
+
 """Batch sampler with length-grouped + rank-strided sharding.
 
 Adapted from ms-swift swift/dataloader/shard.py. Difference: explicit
@@ -33,6 +38,8 @@ from __future__ import annotations
 from typing import Optional
 
 
+# 【步骤说明】先随机打乱样本编号，再在大组中按长度排序；返回新顺序，以减少同一批次的补齐浪费。
+# 对照参数：lengths, batch_size, world_size, generator；下面保留原始英文说明与类型，方便对应调用处。
 def _length_grouped_indices(
     lengths: list[int], batch_size: int, world_size: int, generator,
 ) -> list[int]:
@@ -51,6 +58,8 @@ def _length_grouped_indices(
     return [idx for mb in megabatches for idx in mb]
 
 
+# 【步骤说明】把图文与纯文字样本分别按长度分组，再混洗完整组并合并余数；返回完整样本顺序。
+# 对照参数：lengths, modalities, batch_size, world_size, generator；下面保留原始英文说明与类型，方便对应调用处。
 def _modality_length_grouped_indices(
     lengths: list[int], modalities: list[bool],
     batch_size: int, world_size: int, generator,
@@ -102,7 +111,10 @@ def _modality_length_grouped_indices(
     return [idx for mb in all_batches for idx in mb]
 
 
+# 【类的用途】负责每个进程每一批取得哪些样本编号，支持打乱与长短分组。
 class BatchSamplerShard:
+    # 【步骤说明】保存批次与进程设置，检查分组参数，计算当前进程负责的样本量。 构造完成后通过对象保存这些状态，不返回预测结果。
+    # 对照参数：total_samples, batch_size, shuffle, drop_last, data_seed, rank, world_size, group_by_length, lengths, modalities；下面保留原始英文说明与类型，方便对应调用处。
     def __init__(
         self, *,
         total_samples: int, batch_size: int,
@@ -134,6 +146,7 @@ class BatchSamplerShard:
         self.modalities = modalities
         self.total_samples = total_samples // self.world_size
 
+    # 【步骤说明】返回当前进程编号，优先使用显式设置；没有多进程环境时返回 0。
     @property
     def rank(self) -> int:
         if self._explicit_rank is not None:
@@ -141,6 +154,7 @@ class BatchSamplerShard:
         import torch.distributed as dist
         return dist.get_rank() if dist.is_initialized() else 0
 
+    # 【步骤说明】返回参与分配样本的进程数，优先使用显式设置；单进程默认 1。
     @property
     def world_size(self) -> int:
         if self._explicit_world is not None:
@@ -148,10 +162,12 @@ class BatchSamplerShard:
         import torch.distributed as dist
         return dist.get_world_size() if dist.is_initialized() else 1
 
+    # 【步骤说明】使用本轮种子生成顺序、领取当前进程份额，再逐批产生编号列表；按设置保留或丢掉最后不满一批的部分。
     def __iter__(self):
         import torch
         if self.shuffle:
             generator = torch.Generator()
+            # 固定本轮随机种子，使所有进程先得到相同的总顺序，再按进程编号领取不同份额。
             generator.manual_seed(self.curr_seed)
             if self.group_by_length and self.modalities is not None:
                 total_idx = _modality_length_grouped_indices(
@@ -181,9 +197,12 @@ class BatchSamplerShard:
         if not self.drop_last and batch:
             yield batch
 
+    # 【步骤说明】接收训练轮数并更新随机种子；让不同轮次的顺序变化，同时在同一设置下可复现。
+    # 对照参数：epoch；下面保留原始英文说明与类型，方便对应调用处。
     def set_epoch(self, epoch: int) -> None:
         self.curr_seed = self.base_seed + epoch
 
+    # 【步骤说明】根据本进程样本量、批次大小与是否丢尾返回批次数，便于计算训练进度。
     def __len__(self) -> int:
         if self.drop_last:
             return self.total_samples // self.batch_size

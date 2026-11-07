@@ -1,0 +1,58 @@
+{
+  "query": "Locate all instances in the image that match the description \"RIGHT VASE\". Report bbox coordinates and masks.",
+  "completion": "\n</think>\n\n<bbox>[592, 304, 755, 938]</bbox><mask><|mask|></mask><|im_end|>",
+  "ids": [
+    [
+      198,
+      248069,
+      271,
+      248049,
+      58,
+      20,
+      24,
+      17,
+      11,
+      220,
+      18,
+      15,
+      19,
+      11,
+      220,
+      22,
+      20,
+      20,
+      11,
+      220,
+      24,
+      18,
+      23,
+      60,
+      248050,
+      27,
+      10931,
+      29,
+      248077,
+      510,
+      10931,
+      29,
+      248046
+    ]
+  ],
+  "total_masks": 1,
+  "thought_masks": 0,
+  "grid": [
+    [
+      1,
+      26,
+      36
+    ]
+  ],
+  "logits_sha256": "6dce6fa4dc79f66bb8ab0160f2dea8ca9d861f646a5c134f2372d39c9b0c814e",
+  "shape": [
+    1,
+    1,
+    416,
+    576
+  ],
+  "overlay_sha256": "35efed071d83dc486a9ed907d9f9c319191d469d695f5ba2c07576af94edfd21"
+}

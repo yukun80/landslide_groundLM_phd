@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 【中文导读｜阅读第 7 步】
+# 本文件：把外部区域请求转换成模型输入，再把模型输出转换为可传输的图片或区域编码。
+# 怎么读：pre_process 负责进入，post_process 负责返回；原图大小与模型画布大小是两个概念。
+# 完整路线与概念解释见仓库最外层 docs/xiaomi-lens-0/README.md（不是本算法子目录）。
+
 """vLLM IO-processor plugin — turns a mask request into a pooling forward and the
 pooler's flat output back into a dense mask.
 
@@ -58,6 +63,8 @@ from PIL import Image
 from vllm.plugins.io_processors.interface import IOProcessor
 
 
+# 【步骤说明】优先读取请求中的本地图片路径，否则解码 Base64 图片；返回 RGB 图片，两者都没有就报错。
+# 对照参数：payload；下面保留原始英文说明与类型，方便对应调用处。
 def _load_image(payload: dict) -> Image.Image:
     if payload.get("image_path"):
         return Image.open(payload["image_path"]).convert("RGB")
@@ -66,12 +73,16 @@ def _load_image(payload: dict) -> Image.Image:
     raise ValueError("request must provide 'image_path' or 'image_b64'")
 
 
+# 【步骤说明】将像素数组按指定颜色模式存成内存 PNG，再转成文本；返回用于网络传输的 Base64 字符串。
+# 对照参数：arr, mode；下面保留原始英文说明与类型，方便对应调用处。
 def _png_b64(arr: np.ndarray, mode: str) -> str:
     buf = _io.BytesIO()
     Image.fromarray(arr, mode=mode).save(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode("ascii")
 
 
+# 【步骤说明】把二值区域按列优先压缩成 COCO RLE，并将字节串改成可写入 JSON 的文字；返回 size/counts 字典。
+# 对照参数：binary_mask；下面保留原始英文说明与类型，方便对应调用处。
 def _encode_rle(binary_mask: np.ndarray) -> dict:
     """Encode as JSON-serializable COCO compressed RLE."""
     from pycocotools import mask as coco_mask
@@ -86,20 +97,27 @@ def _encode_rle(binary_mask: np.ndarray) -> dict:
     }
 
 
+# 【类的用途】在外部请求和 vLLM 的区域模型之间转换输入输出，暂存每个请求的展示选项。
 class XiaomiLensMaskIOProcessor(IOProcessor):
     """Bridges a mask request <-> vLLM pooling forward + dense-mask serialization."""
 
+    # 【步骤说明】保存服务提供的分词器，并创建按请求号记录输出选项的字典。 构造完成后通过对象保存这些状态，不返回预测结果。
+    # 对照参数：vllm_config, renderer；下面保留原始英文说明与类型，方便对应调用处。
     def __init__(self, vllm_config, renderer):
         super().__init__(vllm_config, renderer)
         self._tokenizer = renderer.get_tokenizer()
         # One IO processor serves concurrent requests, so it cannot use one self._payload.
         self._payloads: dict[str, dict] = {}
 
+    # 【步骤说明】检查请求内容必须是字典，合法就返回原对象；不是字典则报错。
+    # 对照参数：data；下面保留原始英文说明与类型，方便对应调用处。
     def parse_data(self, data: object) -> dict:
         if not isinstance(data, dict):
             raise ValueError("Xiaomi-Lens-0 mask request must be a JSON object")
         return data
 
+    # 【步骤说明】根据图片与问题构造前缀，再拼接实际生成的编号；返回服务模型输入，并按请求号暂存展示选项。
+    # 对照参数：prompt, request_id；下面保留原始英文说明与类型，方便对应调用处。
     def pre_process(self, prompt, request_id=None, **kwargs):
         """Render the image and instruction, then append the generated token IDs.
 
@@ -141,6 +159,8 @@ class XiaomiLensMaskIOProcessor(IOProcessor):
             for token_id in completion_ids
         ):
             raise ValueError("completion_token_ids must be a list of integer token IDs")
+        # 保留生成边界：问题前缀与生成结果分别提供编号后拼接，
+        # 避免把两个文本重新合并分词而改变区域标记附近的对应位置。
         prompt_token_ids = list(prefix_ids) + list(completion_ids)
 
         self._payloads[payload_key] = payload
@@ -150,10 +170,14 @@ class XiaomiLensMaskIOProcessor(IOProcessor):
             "multi_modal_data": {"image": image},
         }
 
+    # 【步骤说明】读取网格与区域数量，重建像素分数并移除思考区域；按请求缩放、二值化和编码，返回区域与可选叠加图。
+    # 对照参数：model_output, request_id；下面保留原始英文说明与类型，方便对应调用处。
     def post_process(self, model_output, request_id=None, **kwargs):
         out = model_output[0]
         data = out.outputs.data if hasattr(out.outputs, "data") else out.outputs
         flat = torch.as_tensor(data).float().reshape(-1)
+        # 扁平结果的前三个数字是网格高、网格宽与区域数，其余才是像素分数。
+        # 这个头部约定要与 vllm_model.py 的 decode_mask_batch 保持一致。
         grid_h, grid_w, k = int(flat[0]), int(flat[1]), int(flat[2])
         canvas_h, canvas_w = grid_h * 16, grid_w * 16
         logits = flat[3:].reshape(k, canvas_h, canvas_w)
@@ -231,6 +255,7 @@ class XiaomiLensMaskIOProcessor(IOProcessor):
         }
 
 
+# 【步骤说明】返回输入输出处理器类的完整名称字符串；框架会再实例化该类，这里不是直接返回对象。
 def make_io_processor():
     """Entry-point hook. vLLM calls this with NO args and expects the qualified
     name of the IOProcessor class; it then resolves + instantiates it itself with

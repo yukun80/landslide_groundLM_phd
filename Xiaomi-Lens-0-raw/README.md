@@ -1,3 +1,5 @@
+> 中文学习导读：先看[学习指南](../docs/xiaomi-lens-0/README.md)与[完整代码树](../docs/xiaomi-lens-0/map/README.md)。本页保留原项目说明；初学者可先看方法介绍，再按指南跟读一次预测过程；评测表格是原项目报告，不是本次重新测出的成绩。
+
 <div align="center">
 <h1 align="center">Xiaomi-Lens-0</h1>
 <p><b>Pixel-level grounding and visual reasoning in a compact 4B multimodal model.</b></p>

@@ -1,11 +1,19 @@
+# 【中文导读｜第 7 步】列出普通推理依赖；阅读代码不需要立即安装所有项目。
 # Hugging Face inference (infer.py). Tested with torch 2.10.0,
 # transformers 5.4.0, and flash-attn 2.8.3.
+# 计算数组、搭建神经网络和执行自动求导。
 torch>=2.10.0
+# 提供视觉相关工具，与 torch 配套。
 torchvision>=0.25.0
+# 提供 Qwen 基础模型、分词器、图片处理器与文字生成流程。
 transformers>=5.4.0
+# 协助将模型放到设备上，并组织训练执行。
 accelerate>=1.13.0
+# 可选计算路径所需的快速注意力组件，安装受设备和环境限制。
 flash-attn>=2.8.3
+# 处理 CPU 数组与区域标注。
 numpy
+# 读取、缩放、绘制和保存图片。
 pillow
 
 # vLLM serving (src/xiaomi_lens/integrations/vllm) — install with

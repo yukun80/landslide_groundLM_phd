@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 【中文导读｜阅读第 4 步】
+# 本文件：把不同来源的对话整理成模型认识的格式，并对齐图片占位符。
+# 怎么读：先看 render_prompt_and_completion；用户的提问和助手的答案在训练中扮演不同角色。
+# 完整路线与概念解释见仓库最外层 docs/xiaomi-lens-0/README.md（不是本算法子目录）。
+
 """Chat-template rendering helpers for lazy preprocessing.
 
 Pure-Python; importable without torch, transformers, or datasets.
@@ -27,6 +32,8 @@ import PIL.Image
 logger = logging.getLogger(__name__)
 
 
+# 【步骤说明】只统计用户文字中的 <image> 次数，返回占位符数量，用于与真实图片数核对。
+# 对照参数：messages；下面保留原始英文说明与类型，方便对应调用处。
 def _count_image_placeholders(messages: list[dict]) -> int:
     total = 0
     for m in messages:
@@ -35,6 +42,8 @@ def _count_image_placeholders(messages: list[dict]) -> int:
     return total
 
 
+# 【步骤说明】样本只有助手答案时补一条用户消息，并将图片标记放到用户侧；返回整理后的对话，已有用户消息则原样返回。
+# 对照参数：messages, num_images, sample_id；下面保留原始英文说明与类型，方便对应调用处。
 def ensure_user_message(
     messages: list[dict],
     num_images: int,
@@ -95,6 +104,8 @@ def ensure_user_message(
     return repaired
 
 
+# 【步骤说明】接收对话和真实图片数，缺标记时向首条用户消息补，多标记时从后向前删；返回整理后的消息列表。
+# 对照参数：messages, num_images, sample_id；下面保留原始英文说明与类型，方便对应调用处。
 def align_image_placeholders(
     messages: list[dict],
     num_images: int,
@@ -170,6 +181,8 @@ def align_image_placeholders(
     return repaired
 
 
+# 【步骤说明】将通用 <image> 占位符换成该模型认识的图片起止标记；返回替换后的文字，非文字内容原样通过。
+# 对照参数：content, vision_start, image_token, vision_end；下面保留原始英文说明与类型，方便对应调用处。
 def normalize_qwen_message_content(
     content: Any,
     vision_start: str,
@@ -182,6 +195,8 @@ def normalize_qwen_message_content(
     return content.replace("<image>", f"{vision_start}{image_token}{vision_end}")
 
 
+# 【步骤说明】从后往前找最后一条助手消息，返回其位置；没有助手答案就无法建立训练目标，因此报错。
+# 对照参数：messages；下面保留原始英文说明与类型，方便对应调用处。
 def last_assistant_index(messages: list[dict]) -> int:
     for i in range(len(messages) - 1, -1, -1):
         if messages[i].get("role") == "assistant":
@@ -189,6 +204,8 @@ def last_assistant_index(messages: list[dict]) -> int:
     raise ValueError("Sample has no assistant message; cannot build prompt/completion.")
 
 
+# 【步骤说明】逐条复制消息并替换图片标记，返回标准化消息列表，不改传入对象。
+# 对照参数：messages, vision_start, image_token, vision_end；下面保留原始英文说明与类型，方便对应调用处。
 def normalize_messages(
     messages: list[dict],
     *,
@@ -206,6 +223,8 @@ def normalize_messages(
     return out
 
 
+# 【步骤说明】用同一个对话模板分别排出问题前缀与完整对话，再取差得到目标答案；返回两段文字。
+# 对照参数：processing_class, messages, vision_start, image_token, vision_end；下面保留原始英文说明与类型，方便对应调用处。
 def render_prompt_and_completion(
     processing_class,
     messages: list[dict],
@@ -235,6 +254,8 @@ def render_prompt_and_completion(
     full_text = processing_class.apply_chat_template(
         full_msgs, tokenize=False, add_generation_prompt=False,
     )
+    # 用同一模板得到完整文本与问题前缀，然后切掉前缀得到训练回答。
+    # 这里依赖模板输出的对应关系，不能随意在其中一侧追加格式符号。
     completion_text = full_text[len(prompt_text):]
     if not completion_text:
         completion_text = normalize_qwen_message_content(
@@ -249,6 +270,8 @@ def render_prompt_and_completion(
     return prompt_text, completion_text
 
 
+# 【步骤说明】按路径打开并真正读入图片像素，统一成 RGB；返回图片列表，避免以后才触发延迟读取。
+# 对照参数：paths；下面保留原始英文说明与类型，方便对应调用处。
 def load_sample_images(paths: list[str]) -> list[PIL.Image.Image]:
     """Open + convert + force-decode images so that pixels live in this
     process's memory (pass-through to the main training loop doesn't trigger

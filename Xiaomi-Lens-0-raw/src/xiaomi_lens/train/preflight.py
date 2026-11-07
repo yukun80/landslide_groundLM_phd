@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 【中文导读｜阅读第 5 步】
+# 本文件：训练开始前整理数据规模、可训练参数和训练设置，让人先核对任务是否符合预期。
+# 怎么读：build_preflight_report 是入口；报告是配置检查，不是模型效果证明。
+# 完整路线与概念解释见仓库最外层 docs/xiaomi-lens-0/README.md（不是本算法子目录）。
+
 """Preflight summary for Xiaomi-Lens-0 training runs.
 
 Builds a human-readable JSON report covering data splits, model parameters, and
@@ -30,16 +35,22 @@ from ..constants import MASK_TOKEN
 from .data.segmentation import split_segmentation_masks
 
 
+# 【步骤说明】把数量格式化成便于阅读的文字，返回展示字符串，不参与训练计算。
+# 对照参数：value；下面保留原始英文说明与类型，方便对应调用处。
 def _format_count(value: int) -> str:
     return f"{value:,}"
 
 
+# 【步骤说明】接收分子和分母，返回可阅读的比例文字，处理分母为零的情况。
+# 对照参数：numerator, denominator；下面保留原始英文说明与类型，方便对应调用处。
 def _format_ratio(numerator: int, denominator: int) -> str:
     if denominator == 0:
         return "0.00%"
     return f"{(100.0 * numerator / denominator):.2f}%"
 
 
+# 【步骤说明】汇总一组数值的范围等统计，返回报告所需的摘要，不执行模型预测。
+# 对照参数：values；下面保留原始英文说明与类型，方便对应调用处。
 def _summarize_numeric(values: Iterable[int]) -> dict[str, Any]:
     values = list(values)
     if not values:
@@ -51,14 +62,20 @@ def _summarize_numeric(values: Iterable[int]) -> dict[str, Any]:
     }
 
 
+# 【步骤说明】如果输入是枚举则返回其实际值，否则原样返回，便于判断训练选项。
+# 对照参数：value；下面保留原始英文说明与类型，方便对应调用处。
 def _normalize_enum(value: Any) -> Any:
     return value.value if hasattr(value, "value") else value
 
 
+# 【步骤说明】检查训练设置是否启用了评估，返回真假，决定是否需要准备评估数据。
+# 对照参数：training_args；下面保留原始英文说明与类型，方便对应调用处。
 def is_eval_enabled(training_args: Any) -> bool:
     return _normalize_enum(training_args.eval_strategy) != "no"
 
 
+# 【步骤说明】统计模型全部参数与允许训练的参数，返回数量摘要，用来核对冻结设置。
+# 对照参数：module；下面保留原始英文说明与类型，方便对应调用处。
 def _count_parameters(module: Any) -> tuple[int, int]:
     total = 0
     trainable = 0
@@ -70,6 +87,8 @@ def _count_parameters(module: Any) -> tuple[int, int]:
     return total, trainable
 
 
+# 【步骤说明】接收数据集与分组名称，抽查图文及区域数量、来源和缺失情况；返回数据报告，并记录是否只检查了部分样本。
+# 对照参数：dataset, split_name；下面保留原始英文说明与类型，方便对应调用处。
 def _build_dataset_summary(dataset: Any, split_name: str) -> dict[str, Any]:
     image_counts: list[int] = []
     message_counts: list[int] = []
@@ -83,6 +102,8 @@ def _build_dataset_summary(dataset: Any, split_name: str) -> dict[str, Any]:
     per_tag_counter: Counter[str] = Counter()
     mismatched_mask_counts = 0
 
+    # 默认最多抽查 20000 条，避免启动报告就遍历巨大数据集。
+    # summary_truncated 会告诉你是否只看了部分样本，报告不能当作完整质量审计。
     max_samples = int(os.environ.get("XIAOMI_LENS_PREFLIGHT_MAX_SAMPLES", "20000"))
     observed = 0
     total = len(dataset)
@@ -144,6 +165,8 @@ def _build_dataset_summary(dataset: Any, split_name: str) -> dict[str, Any]:
     }
 
 
+# 【步骤说明】汇总模型类别、参数数量和可训练部分，返回模型设置说明。
+# 对照参数：model；下面保留原始英文说明与类型，方便对应调用处。
 def _build_model_summary(model: Any) -> dict[str, Any]:
     config = model.config
     vision_config = getattr(config, "vision_config", getattr(config, "visual_config", None))
@@ -173,6 +196,8 @@ def _build_model_summary(model: Any) -> dict[str, Any]:
             "trainable_ratio": _format_ratio(module_trainable, module_total),
         })
 
+    # 【步骤说明】接收对象并返回类名，用来显示实际采用的模型或处理器类型。
+    # 对照参数：obj；下面保留原始英文说明与类型，方便对应调用处。
     def _class_name(obj: Any) -> str:
         return obj.__class__.__name__ if obj is not None else type(None).__name__
 
@@ -207,6 +232,8 @@ def _build_model_summary(model: Any) -> dict[str, Any]:
     }
 
 
+# 【步骤说明】汇总进程数、每批样本量、学习设置和保存设置，返回训练计划说明。
+# 对照参数：script_args, training_args, model_args, trainer, splits；下面保留原始英文说明与类型，方便对应调用处。
 def _build_training_summary(
     script_args: Any,
     training_args: Any,
@@ -302,6 +329,8 @@ def _build_training_summary(
     }
 
 
+# 【步骤说明】组合数据、模型和训练三个摘要，返回完整的训练前检查报告，帮助先核对再运行。
+# 对照参数：script_args, training_args, model_args, trainer, splits；下面保留原始英文说明与类型，方便对应调用处。
 def build_preflight_report(
     script_args: Any,
     training_args: Any,

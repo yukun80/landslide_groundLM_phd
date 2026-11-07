@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 【中文导读｜阅读第 7 步】
+# 本文件：提供一个使用普通模型加载方式的 HTTP 区域服务，接收图片、问题和已生成文字。
+# 怎么读：这是独立的备选服务；当前 client.py 默认调用的是 vLLM 的 /pooling，不是这里的 /decode_mask。
+# 完整路线与概念解释见仓库最外层 docs/xiaomi-lens-0/README.md（不是本算法子目录）。
+
 """Hugging Face mask-decoding HTTP service for Xiaomi-Lens-0.
 
 This optional fallback accepts an image, the original instruction, and a text
@@ -81,12 +86,16 @@ _MASK_TOKEN_ID = None
 _DEVICE = None
 
 
+# 【步骤说明】将像素数组按指定颜色模式存成内存 PNG，再转成文本；返回用于网络传输的 Base64 字符串。
+# 对照参数：arr, mode；下面保留原始英文说明与类型，方便对应调用处。
 def _png_b64(arr: np.ndarray, mode: str) -> str:
     buf = io.BytesIO()
     Image.fromarray(arr, mode=mode).save(buf, format="PNG")
     return base64.b64encode(buf.getvalue()).decode("ascii")
 
 
+# 【步骤说明】优先读取请求中的本地图片路径，否则解码 Base64 图片；返回 RGB 图片，两者都没有就报错。
+# 对照参数：payload；下面保留原始英文说明与类型，方便对应调用处。
 def _load_image(payload: dict) -> Image.Image:
     if payload.get("image_path"):
         return Image.open(payload["image_path"]).convert("RGB")
@@ -96,6 +105,8 @@ def _load_image(payload: dict) -> Image.Image:
     raise ValueError("request must provide 'image_path' or 'image_b64'")
 
 
+# 【步骤说明】读取图片、问题和已生成文字，使用已加载模型重新计算区域；返回区域 PNG、框和可选叠加图，无答案区域时返回空列表。
+# 对照参数：payload；下面保留原始英文说明与类型，方便对应调用处。
 def decode_mask(payload: dict) -> dict:
     """Phase-2 decode for one (image, prompt, completion). Reads model globals."""
     text = payload["text"]
@@ -153,9 +164,12 @@ def decode_mask(payload: dict) -> dict:
     }
 
 
+# 【类的用途】接收 HTTP 请求并调用区域解码函数，组织成功或失败响应。
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
+    # 【步骤说明】将状态码和字典写成 HTTP 响应，设置长度与内容类型；无返回值。
+    # 对照参数：code, obj；下面保留原始英文说明与类型，方便对应调用处。
     def _send(self, code: int, obj: dict) -> None:
         body = json.dumps(obj).encode("utf-8")
         self.send_response(code)
@@ -164,12 +178,14 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    # 【步骤说明】处理健康检查路径 /health，返回服务状态；其余路径返回不存在。
     def do_GET(self) -> None:  # noqa: N802
         if self.path == "/health":
             self._send(200, {"status": "ok", "device": str(_DEVICE)})
         else:
             self._send(404, {"error": "not found"})
 
+    # 【步骤说明】只处理 /decode_mask 请求，读取 JSON 并执行区域解码；成功发回结果，异常转成错误响应。
     def do_POST(self) -> None:  # noqa: N802
         if self.path != "/decode_mask":
             self._send(404, {"error": "not found"})
@@ -181,10 +197,12 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as exc:  # noqa: BLE001 — surface the error to the caller
             self._send(400, {"error": f"{type(exc).__name__}: {exc}"})
 
+    # 【步骤说明】覆盖服务器默认的访问日志方法，不输出日志，避免重复终端记录。
     def log_message(self, *args) -> None:  # quiet default access logging
         return
 
 
+# 【运行入口】读取模型与监听地址，加载一次模型，启动服务器等待区域解码请求。
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--checkpoint", type=Path, required=True)

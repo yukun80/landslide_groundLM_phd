@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 【中文导读｜阅读第 5 步】
+# 本文件：训练总入口：读取训练选项、确定数据来源、创建训练器，并启动或继续训练。
+# 怎么读：先看 main，再回头看恢复训练的检查；真正的一步训练在 train/trainer.py。
+# 完整路线与概念解释见仓库最外层 docs/xiaomi-lens-0/README.md（不是本算法子目录）。
+
 """Xiaomi-Lens-0 training entry point.
 
 The maintained recipes are `scripts/train_stage1.sh` (mask decoder warmup) and
@@ -48,6 +53,8 @@ from xiaomi_lens.train.preflight import build_preflight_report, is_eval_enabled 
 from xiaomi_lens.train.trainer import XiaomiLensTrainer  # noqa: E402
 
 
+# 【步骤说明】统一恢复训练选项中的真假值和文字写法；返回 None、True 或指定路径，消除命令行歧义。
+# 对照参数：value；下面保留原始英文说明与类型，方便对应调用处。
 def _normalize_resume_from_checkpoint(value: Any) -> Any:
     if value in (None, False):
         return None
@@ -60,6 +67,8 @@ def _normalize_resume_from_checkpoint(value: Any) -> Any:
     return value
 
 
+# 【步骤说明】检查用户是否显式传入某个选项，兼容连字符、下划线和等号写法；返回真假，供自动恢复规则判断优先级。
+# 对照参数：name；下面保留原始英文说明与类型，方便对应调用处。
 def _cli_arg_passed(name: str) -> bool:
     """True if the flag ``name`` was given on the command line, any spelling.
 
@@ -79,6 +88,8 @@ def _cli_arg_passed(name: str) -> bool:
     return False
 
 
+# 【步骤说明】显式恢复选项优先，否则按自动恢复设置寻找最新 checkpoint；返回恢复目标或 None，并调整跳过数据的设置。
+# 对照参数：training_args, resume_from_checkpoint, log；下面保留原始英文说明与类型，方便对应调用处。
 def _resolve_auto_resume(
     training_args: XiaomiLensTrainingConfig, resume_from_checkpoint: Any, log: bool = True
 ) -> Any:
@@ -111,6 +122,8 @@ def _resolve_auto_resume(
     return last_checkpoint
 
 
+# 【步骤说明】检查指定恢复路径是否存在；自动恢复时检查输出目录下是否有 checkpoint-*，这里只做存在性检查，不验证所有状态文件完整。
+# 对照参数：resume_from_checkpoint, output_dir；下面保留原始英文说明与类型，方便对应调用处。
 def _validate_resume_target(resume_from_checkpoint: Any, output_dir: str) -> None:
     if resume_from_checkpoint is True:
         ckpt_dir = pathlib.Path(output_dir)
@@ -124,6 +137,8 @@ def _validate_resume_target(resume_from_checkpoint: Any, output_dir: str) -> Non
             raise ValueError(f"Checkpoint path does not exist: {checkpoint_path}")
 
 
+# 【运行入口】解析三类选项、设定随机种子、创建训练器，打印检查报告后启动或恢复训练，最后保存模型。
+# 对照参数：script_args, training_args, model_args；下面保留原始英文说明与类型，方便对应调用处。
 def main(
     script_args: XiaomiLensScriptArguments,
     training_args: XiaomiLensTrainingConfig,

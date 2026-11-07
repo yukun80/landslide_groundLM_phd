@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 【中文导读｜阅读第 4 步】
+# 本文件：读取数据清单，把样本文件和图片位置整理成统一形式。
+# 怎么读：先看 DatasetEntry 和 load_dataset_config；清单中的相对路径以清单所在目录为起点。
+# 完整路线与概念解释见仓库最外层 docs/xiaomi-lens-0/README.md（不是本算法子目录）。
+
 """Dataset config + image-path helpers for the lazy JSONL pipeline."""
 
 from __future__ import annotations
@@ -26,6 +31,7 @@ import yaml
 logger = logging.getLogger(__name__)
 
 
+# 【类的用途】记录一个数据来源的样本文件、图片目录、名称、标签和抽样规则，不存放图片像素。
 @dataclass(frozen=True)
 class DatasetEntry:
     """One dataset source resolved from CLI flags or a YAML config."""
@@ -35,17 +41,22 @@ class DatasetEntry:
     tag: str = ""         # optional free-form label (e.g. "seg", "vqa", "text")
     sampling_strategy: str = "all"  # "all" | "first:N" | "end:N" | "random:N[%]"
 
+    # 【步骤说明】返回显式的数据来源名称；没有名称时使用样本文件名，便于记录时识别来源。
     @property
     def display_name(self) -> str:
         return self.name or Path(self.path).stem
 
 
+# 【步骤说明】把冒号分隔的多个路径拆成列表，忽略空项；没有输入时返回空列表。
+# 对照参数：path_spec；下面保留原始英文说明与类型，方便对应调用处。
 def parse_path_spec(path_spec: str | None) -> list[str]:
     if not path_spec:
         return []
     return [part for part in path_spec.split(":") if part]
 
 
+# 【步骤说明】优先从数据清单读取来源，否则解析命令行中的样本路径和图片目录；返回统一的数据来源列表。
+# 对照参数：script_args；下面保留原始英文说明与类型，方便对应调用处。
 def resolve_dataset_entries(script_args) -> list[DatasetEntry]:
     """Resolve dataset entries from `--data_config` or CLI path lists.
 
@@ -82,6 +93,8 @@ def resolve_dataset_entries(script_args) -> list[DatasetEntry]:
     ]
 
 
+# 【步骤说明】将 image 或 images 统一成图片路径列表，并接上图片根目录；返回样本副本，纯文字样本的图片列表为空。
+# 对照参数：item, image_folder；下面保留原始英文说明与类型，方便对应调用处。
 def resolve_sample_images(item: dict, image_folder: str) -> dict:
     """Normalize the `images` field.
 
@@ -114,6 +127,8 @@ def resolve_sample_images(item: dict, image_folder: str) -> dict:
 PRESET_CONFIG_DIR = Path(__file__).resolve().parent.parent / "configs"
 
 
+# 【步骤说明】依次检查直接给出的清单路径和包内预设位置，返回存在的文件路径；两者都没有则报错。
+# 对照参数：config_path；下面保留原始英文说明与类型，方便对应调用处。
 def resolve_dataset_config_path(config_path: str) -> Path:
     """Resolve a data config path; fall back to the shipped `train/configs/<name>`.
 
@@ -132,11 +147,15 @@ def resolve_dataset_config_path(config_path: str) -> Path:
     )
 
 
+# 【步骤说明】接收基准目录与路径；绝对路径原样返回，相对路径拼到基准目录后返回。
+# 对照参数：base, path；下面保留原始英文说明与类型，方便对应调用处。
 def _relative_to(base: Path, path: str) -> str:
     """Resolve a relative manifest path against the manifest's directory."""
     return path if os.path.isabs(path) else str(base / path)
 
 
+# 【步骤说明】读取 YAML 清单，选择训练或评估分组并验证字段；把相对路径解析好后返回 DatasetEntry 列表。
+# 对照参数：config_path, split；下面保留原始英文说明与类型，方便对应调用处。
 def load_dataset_config(
     config_path: str,
     *,
@@ -200,6 +219,8 @@ def load_dataset_config(
     for idx, raw_entry in enumerate(entries_raw):
         if not isinstance(raw_entry, dict):
             raise ValueError(f"Entry #{idx} in `{resolved}` must be a mapping.")
+        # 检查拼错的字段名，避免把本应生效的设置悄悄忽略。
+        # 例如 image_folders 与本清单要求的 image_folder 并不是同一个名字。
         unknown = set(raw_entry) - allowed
         if unknown:
             raise ValueError(

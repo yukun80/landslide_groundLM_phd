@@ -1,0 +1,58 @@
+{
+  "tiny_decoder": {
+    "shape": [
+      1,
+      2,
+      32,
+      48
+    ],
+    "sha256": "85b85db34a9ae116a948262a11313ec8267f06ac88c7ba0215160c8d15d64475",
+    "loss": 2.091078519821167,
+    "q_gradient": "85196ee049aeb4daeb84a94a774390c37e9bf969f1b1640777b09a5aa7da0783",
+    "image_gradient": "8da3d0335005a057d18eb02dc80719a6b06eb7ba2d897f233c1cc434bf86d46b"
+  },
+  "bad_grid_rejected": true,
+  "zero_valid_loss": 0.0,
+  "rle_roundtrip": true,
+  "toy_image": "9e6366a12a84ce89fe0bd114633a9d334ff0b3df4210d31f721c43e6868008f7",
+  "overlay": "676f1a3f1c372c04e871eb323f7faab732b9cb65aac00b54e078f9e88ec8eefc",
+  "heat_overlay": "710b1d6f366e161297db485c75c438a4ae7dcbadf768fff4c2d645128d1edfd5",
+  "edge_cases": true,
+  "real_sample": {
+    "messages": [
+      {
+        "role": "user",
+        "content": "<image>\nLocate all instances in the image that match the description \"RIGHT VASE\". Report bbox coordinates and masks."
+      },
+      {
+        "role": "assistant",
+        "content": "<think>\n\n</think>\n\n<bbox>[586, 308, 756, 927]</bbox><mask><|mask|></mask>"
+      }
+    ],
+    "images_count": 1
+  },
+  "encoded": {
+    "input_ids": "a9a11880add61b72173d4819606a0fb4ae6af60c06fbb883b16118a90ebed4c3",
+    "attention_mask": "871d109f8d8857b1c342dd9d0b75e5ee878f70cdd1d2a586adcd527bc17deec3",
+    "labels": "8c54f273e6d541a3121a9fb6e495c24af3ee14104bf369779a9f1de068e20473",
+    "mm_token_type_ids": "dd73c52254b30f20b5e3ee7d25e8580a651ffe26cf17c342dbc7e40dc4d0ca3b",
+    "image_grid_thw": "a3d27c542fe5ea5278053a1eb3bc593b3bc6e214b7707ddf7c0f8b8fa9c12076",
+    "mask_positions": "9ec97263f78cc30dbca089d0eddf910acef986b94945c4c48edad54e296a6a57",
+    "mask_valid_mask": "e00e5eb9444182f352323374ef4e08ebcb784725fdd4fd612d7730540b3e0c8c",
+    "mask_image_index": "af5570f5a1810b7af78caf4bc70a660f0df51e42baf91d4de5b2328de0e83dfc",
+    "pixel_values": "50d65dccfe491c16964be25124711b7666d3f0df46df4038f4707cd1c67a54a9"
+  },
+  "packed_targets": [
+    "ebb6e33d6d4ec3cbc87202e0702deb9ca06f4db0f32f6ea4ab7ac8de04ef6fc1"
+  ],
+  "batch": {
+    "input_ids": "dbd229651cab870fd07cca352db0cd6426ae65b10ffd855772c071e69de2cd6c",
+    "attention_mask": "cfe2c41bf2958e3ab42f6da24e9fc1d5d4deffe90483c4eb1e5ea05f22586de2",
+    "labels": "0e78788606249d01b6f8bb2eb1c9fc772755038dadc972d0d8d3e71d42f16c6e",
+    "mm_token_type_ids": "b7294ec6d477e33569e089de5c8718bbf51e550912f33347c04bed0233517605",
+    "pixel_values": "c0dfb3c66be1931f94a86cd152180723801044a9239c53548c6705df2ea91498",
+    "image_grid_thw": "06eb52724791a212f3489e9956cf5bc3f360fbc43bbcc21c23a3ba54c2586a7a"
+  },
+  "invalid_image_dummy": true,
+  "pure_text": true
+}

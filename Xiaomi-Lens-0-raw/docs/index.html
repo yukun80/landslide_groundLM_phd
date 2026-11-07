@@ -1,4 +1,6 @@
 <!doctype html>
+<!-- 中文导读｜第 7 步：静态项目展示页，展示已保存的案例，不在浏览器中运行模型。
+阅读顺序：页面结构 → style 外观 → 底部 script 的切换、筛选与复制操作。 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -8,11 +10,13 @@
 <meta property="og:title" content="Xiaomi-Lens-0">
 <meta property="og:description" content="Pixel-level grounding and visual reasoning in a compact 4B multimodal model.">
 <meta property="og:image" content="https://seerray-lab.github.io/Xiaomi-Lens-0/assets/figures/architecture.png">
+<!-- 外观部分：字体、颜色、布局和窄屏适配，不参与任何模型计算。 -->
 <style>
 @font-face { font-family: "Fredoka"; font-weight: 300 700; font-display: swap; src: url("assets/fonts/fredoka.woff2") format("woff2"); }
 @font-face { font-family: "Nunito"; font-weight: 200 1000; font-display: swap; src: url("assets/fonts/nunito.woff2") format("woff2"); }
 @font-face { font-family: "JetBrains Mono"; font-weight: 100 800; font-display: swap; src: url("assets/fonts/jetbrains-mono.woff2") format("woff2"); }
 
+/* 集中定义颜色与字体，下面通过 var(...) 复用。修改这里影响外观，不改变案例数据。 */
 :root {
   --paper: #fff8ec;
   --white: #ffffff;
@@ -298,16 +302,19 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
 .inline-link { color: var(--orange); text-decoration: underline; text-underline-offset: 3px; }
 
 /* Below 1280px the side-by-side hero leaves too little room for the button rows. */
+/* 窄屏适配：屏幕宽度满足条件时调整布局。 */
 @media (max-width: 1279px) {
   .hero { grid-template-columns: 1fr; gap: 48px; }
   .hero-visual { max-width: 720px; }
 }
+/* 窄屏适配：屏幕宽度满足条件时调整布局。 */
 @media (max-width: 1080px) {
   .capability-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .metric-value { font-size: 32px; }
   .result-head { grid-template-columns: 1fr auto; }
   .result-head > p { grid-column: 1 / -1; }
 }
+/* 窄屏适配：屏幕宽度满足条件时调整布局。 */
 @media (max-width: 860px) {
   .shell { width: calc(100% - 32px); }
   .site-header { padding-inline: 16px; gap: 12px; height: 64px; }
@@ -341,6 +348,7 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
   .result-head, .result-head.two { grid-template-columns: 1fr; }
   .big-score { text-align: left; }
 }
+/* 窄屏适配：屏幕宽度满足条件时调整布局。 */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .button { transition: none; }
@@ -349,6 +357,7 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
 </head>
 <body>
 
+<!-- 页头与导航：点击后跳到同页对应章节。 -->
 <header class="site-header">
   <a class="brand" href="#overview" aria-label="Xiaomi-Lens-0 home">
     <img class="brand-mark" src="assets/figures/xiaomi-logo.png" width="32" height="32" alt="" aria-hidden="true">
@@ -368,6 +377,7 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
 </header>
 
 <main>
+<!-- 项目概览：介绍目标和总览图片。 -->
 <section id="overview">
  <div class="shell">
   <div class="hero">
@@ -418,6 +428,7 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
  </div>
 </section>
 
+<!-- 能力介绍：简述不同任务及案例入口。 -->
 <section id="capabilities" class="pad">
   <div class="shell">
     <div class="section-heading">
@@ -438,6 +449,7 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
   </div>
 </section>
 
+<!-- 案例播放区：显示预先保存的 GIF，通过下方脚本切换。 -->
 <section id="samples" class="pad tinted">
   <div class="shell">
     <div class="section-heading">
@@ -499,6 +511,7 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
   </div>
 </section>
 
+<!-- 算法介绍：展示共享图像特征与区域解码的结构图。 -->
 <section id="method" class="pad">
   <div class="shell">
     <div class="section-heading">
@@ -552,6 +565,7 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
   </div>
 </section>
 
+<!-- 数据流程：通过页签切换不同数据说明。 -->
 <section id="data" class="pad tinted">
   <div class="shell">
     <div class="section-heading">
@@ -601,6 +615,7 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
   </div>
 </section>
 
+<!-- 结果展示：原项目发布的表格和图，不是打开网页后新运行的结果。 -->
 <section id="results" class="pad">
   <div class="shell">
     <div class="section-heading">
@@ -881,6 +896,7 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
   </div>
 </section>
 
+<!-- 引用信息：提供论文引用文本与复制按钮。 -->
 <section id="cite" class="pad tinted">
   <div class="shell cite">
     <div class="section-heading single" style="margin:0">
@@ -909,6 +925,7 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
 </section>
 </main>
 
+<!-- 页尾：项目署名与相关链接。 -->
 <footer>
   <div class="shell">
     <p class="eyebrow">Contributors</p>
@@ -925,8 +942,10 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
   </div>
 </footer>
 
+<!-- 交互部分：只负责浏览已有内容，不加载模型权重。 -->
 <script>
 (function () {
+  // 接收页面容器，把其中 data-lazy 图片地址转成真正 src；仅在需要展示时加载。
   function loadLazy(root) {
     root.querySelectorAll("img[data-lazy]").forEach(function (img) {
       img.src = img.getAttribute("data-lazy");
@@ -935,6 +954,7 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
   }
 
   // Tab groups: hidden panels load their images on first open.
+  // 对每组页签登记点击事件：更新选中状态、显示对应面板，并加载面板图片。
   document.querySelectorAll('[role="tablist"]').forEach(function (list) {
     var tabs = list.querySelectorAll('[role="tab"]');
     tabs.forEach(function (tab) {
@@ -954,6 +974,7 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
   var player = document.getElementById("player");
   var media = document.getElementById("player-img");
   var cases = Array.prototype.slice.call(document.querySelectorAll(".case-list button"));
+  // 接收选中的案例按钮，读取它保存的图片与文字信息并更新播放器；可选滚动到播放器。
   function show(btn, scroll) {
     cases.forEach(function (b) { b.setAttribute("aria-current", b === btn); });
     media.src = btn.dataset.gif;
@@ -963,10 +984,13 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
     document.getElementById("player-query").innerHTML = btn.dataset.query;
     if (scroll) player.scrollIntoView({ block: "nearest" });
   }
+  // 给所有案例按钮绑定选择操作，点击哪个就播放哪个。
   cases.forEach(function (b) { b.addEventListener("click", function () { show(b); }); });
+  // 重新设置同一 GIF 地址，从头播放当前案例。
   document.getElementById("replay").addEventListener("click", function () {
     var src = media.src; media.src = ""; media.src = src;
   });
+  // 按任务类别筛选案例，隐藏不匹配条目，并自动展示第一个匹配项。
   document.querySelectorAll(".chip[data-filter]").forEach(function (chip, _, chips) {
     chip.addEventListener("click", function () {
       var f = chip.dataset.filter;
@@ -980,6 +1004,7 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
       if (first) show(first);
     });
   });
+  // 从能力介绍跳到指定案例：先恢复显示全部，再选中目标案例。
   document.querySelectorAll("[data-jump]").forEach(function (a) {
     a.addEventListener("click", function () {
       document.querySelector('.chip[data-filter="all"]').click();
@@ -989,6 +1014,7 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
   });
 
   // Overview GIF below the player loads when it nears the viewport.
+  // 浏览器支持可见区域观察时，靠近屏幕的图片才加载；否则一次加载所有延迟图片。
   if ("IntersectionObserver" in window) {
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (e) {
@@ -998,6 +1024,7 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
     document.querySelectorAll(".overview-figure img[data-lazy]").forEach(function (img) { io.observe(img); });
 
     // Highlight the nav link of the section in view.
+  // 记录导航锚点，滚动页面时高亮当前正在阅读的章节。
     var links = {};
     document.querySelectorAll(".site-header nav a").forEach(function (a) { links[a.hash.slice(1)] = a; });
     var spy = new IntersectionObserver(function (entries) {
@@ -1011,6 +1038,7 @@ footer { border-top: 2px solid #1e34501a; padding-block: 48px 56px; }
     loadLazy(document);
   }
 
+  // 将引用文字写入剪贴板，成功后暂时显示 Copied，再恢复按钮文字。
   document.getElementById("copy").addEventListener("click", function () {
     var btn = this;
     navigator.clipboard.writeText(document.getElementById("bibtex").textContent).then(function () {

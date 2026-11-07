@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 【中文导读｜阅读第 5 步】
+# 本文件：衡量下一个文字单元是否预测正确，同时提供节省显存的等价计算路径。
+# 怎么读：先理解 shift_labels_flat 的错一位对齐，再看 _causal_lm_loss；加速路径不改变学习目标。
+# 完整路线与概念解释见仓库最外层 docs/xiaomi-lens-0/README.md（不是本算法子目录）。
+
 """Causal LM loss implementations used during training.
 
 `config.lm_loss_impl` selects one of `LM_LOSS_IMPLS`, falling back in order:
@@ -44,6 +49,7 @@ _FLASH_CE: Optional[tuple] = None
 _FLASH_CE_IMPORT_ATTEMPTED = False
 
 
+# 【步骤说明】第一次需要时尝试导入融合版文字评分工具并缓存，返回求平均与求和两个版本；不可用时返回 None。
 def _get_fused_linear_ce() -> Optional[tuple]:
     """Return liger's `(mean, sum)` fused linear+CE modules, or None if unavailable.
 
@@ -72,6 +78,7 @@ def _get_fused_linear_ce() -> Optional[tuple]:
     return _FUSED_LINEAR_CE
 
 
+# 【步骤说明】尝试取得 flash-attn 的交叉熵计算工具并缓存；返回均值和总和版本，失败后由调用方使用普通计算。
 def _get_flash_ce() -> Optional[tuple]:
     """Return flash-attn's `(mean, sum)` cross-entropy modules, or None if unavailable."""
     global _FLASH_CE, _FLASH_CE_IMPORT_ATTEMPTED
@@ -95,12 +102,15 @@ def _get_flash_ce() -> Optional[tuple]:
     return _FLASH_CE
 
 
+# 【步骤说明】读取当前参与训练的进程总数；没有初始化多进程训练时返回 1。
 def _dist_world_size() -> int:
     if dist.is_available() and dist.is_initialized():
         return dist.get_world_size()
     return 1
 
 
+# 【步骤说明】将正确答案左移一位并展平，末尾用 -100 补齐；例如 [10,20,30] 变成 [20,30,-100]，因为当前位置预测下一个词。
+# 对照参数：labels；下面保留原始英文说明与类型，方便对应调用处。
 def shift_labels_flat(labels: torch.Tensor) -> torch.Tensor:
     """Shift labels one position left and flatten, padding with `-100`.
 
@@ -110,6 +120,7 @@ def shift_labels_flat(labels: torch.Tensor) -> torch.Tensor:
     return shift_labels.contiguous().view(-1)
 
 
+# 【类的用途】给主模型补充文字评分功能的辅助类；依赖主模型已有的词表输出层与设置。
 class CausalLMLossMixin:
     """LM-loss methods for a `*ForConditionalGeneration` model with `lm_head`.
 
@@ -119,6 +130,8 @@ class CausalLMLossMixin:
     `accepts_loss_kwargs = True`.
     """
 
+    # 【步骤说明】检查训练模式、设备、选项和加速工具是否满足条件，返回是否可跳过完整词表分数的显式保存。
+    # 对照参数：hidden_states, logits_to_keep；下面保留原始英文说明与类型，方便对应调用处。
     def _use_fused_linear_lm_loss(self, hidden_states: torch.Tensor, logits_to_keep) -> bool:
         """Whether this forward can skip `lm_head` and fuse the projection into the loss.
 
@@ -137,6 +150,8 @@ class CausalLMLossMixin:
             return False
         return _get_fused_linear_ce() is not None
 
+    # 【步骤说明】根据全局有效文字数量与进程数返回缩放系数，让不同进程参与平均后仍按有效文字数计分。
+    # 对照参数：num_items_in_batch, like；下面保留原始英文说明与类型，方便对应调用处。
     def _token_sum_scale(self, num_items_in_batch, like: torch.Tensor) -> torch.Tensor:
         """Return `world_size / num_items_in_batch` for HF's token-mean contract.
 
@@ -155,6 +170,8 @@ class CausalLMLossMixin:
         )
         return like.new_tensor(float(world)) / denom
 
+    # 【步骤说明】从隐藏状态和标签中只取要学习的位置，融合文字预测与评分，返回文字损失，减少巨大词表带来的临时存储。
+    # 对照参数：hidden_states, labels, num_items_in_batch；下面保留原始英文说明与类型，方便对应调用处。
     def _fused_linear_lm_loss(
         self,
         hidden_states: torch.Tensor,
@@ -180,6 +197,8 @@ class CausalLMLossMixin:
         token_sum = sum_ce(self.lm_head.weight, sel_hidden, sel_labels, bias)
         return token_sum * self._token_sum_scale(num_items_in_batch, token_sum)
 
+    # 【步骤说明】接收文字预测分数和正确标签，优先使用可用加速计算，否则调用基础模型的评分方法；返回文字损失。
+    # 对照参数：logits, labels, num_items_in_batch；下面保留原始英文说明与类型，方便对应调用处。
     def _causal_lm_loss(
         self,
         logits: torch.Tensor,

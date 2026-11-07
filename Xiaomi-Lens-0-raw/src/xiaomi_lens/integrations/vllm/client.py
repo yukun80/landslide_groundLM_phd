@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 【中文导读｜阅读第 7 步】
+# 本文件：向文字服务请求回答，再把同一图片和生成结果送给区域服务，并保存叠加图。
+# 怎么读：main 串联两个服务；保留实际生成的数字编号，避免文字重新编码后对应错位。
+# 完整路线与概念解释见仓库最外层 docs/xiaomi-lens-0/README.md（不是本算法子目录）。
+
 """Generate text and decode masks through two Xiaomi-Lens-0 vLLM servers.
 
   prompt + image ── vLLM generate (:8000, /v1/chat/completions) ──> completion text
@@ -60,6 +65,8 @@ TEMPLATES = {
 }
 
 
+# 【步骤说明】将字典编码为 JSON 并发送 HTTP POST，请求失败由网络库报错，成功返回解析后的字典。
+# 对照参数：url, payload, timeout；下面保留原始英文说明与类型，方便对应调用处。
 def _post_json(url: str, payload: dict, timeout: float = 300.0) -> dict:
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
@@ -69,6 +76,8 @@ def _post_json(url: str, payload: dict, timeout: float = 300.0) -> dict:
         return json.loads(resp.read())
 
 
+# 【步骤说明】读取图片并转成带图片类型的 Base64 字符串，返回可嵌入文字服务请求的图片内容。
+# 对照参数：image_path；下面保留原始英文说明与类型，方便对应调用处。
 def _image_data_uri(image_path: Path) -> str:
     raw = image_path.read_bytes()
     b64 = base64.b64encode(raw).decode("ascii")
@@ -77,6 +86,8 @@ def _image_data_uri(image_path: Path) -> str:
     return f"data:image/{mime};base64,{b64}"
 
 
+# 【步骤说明】发送图片和问题给文字服务，要求保留特殊符号与真实生成编号；返回回答文字和编号列表。
+# 对照参数：vllm_url, model, image_path, query_text, max_tokens；下面保留原始英文说明与类型，方便对应调用处。
 def call_vllm(vllm_url: str, model: str, image_path: Path, query_text: str,
               max_tokens: int) -> tuple[str, list[int]]:
     """One greedy chat completion with its exact generated token IDs."""
@@ -104,6 +115,7 @@ def call_vllm(vllm_url: str, model: str, image_path: Path, query_text: str,
     return choice["message"]["content"], choice["token_ids"]
 
 
+# 【运行入口】读取图片与查询，先调用文字服务再调用区域服务，解码返回的图片并保存。
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--image", type=Path, required=True)

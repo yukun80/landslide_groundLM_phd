@@ -12,6 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# 【中文导读｜阅读第 2 步】
+# 本文件：单张图片的完整使用入口。把图片和问题交给模型，先获得文字，再把回答中的区域画到图片上。
+# 怎么读：从 main 开始，按 build_inputs → generate_completion → run_forward → visualize_pixel_mask 跟读。
+# 完整路线与概念解释见仓库最外层 docs/xiaomi-lens-0/README.md（不是本算法子目录）。
+
 """Run Xiaomi-Lens-0 inference and save pixel-mask overlays.
 
 Pass a complete instruction with --text. The checkpoint's chat template places
@@ -88,6 +93,8 @@ _BOX_RE = re.compile(
 )
 
 
+# 【步骤说明】从完整回答中提取按出现顺序排列的框坐标，返回坐标列表；此处也会读到思考部分的框。
+# 对照参数：generated_text；下面保留原始英文说明与类型，方便对应调用处。
 def parse_bboxes(generated_text: str) -> list[list[int]]:
     """Extract all <bbox>[x1, y1, x2, y2]</bbox> boxes in text order.
 
@@ -97,6 +104,8 @@ def parse_bboxes(generated_text: str) -> list[list[int]]:
     return [[int(v) for v in m.groups()] for m in _BOX_RE.finditer(generated_text)]
 
 
+# 【步骤说明】以第一个 </think> 分开思考与答案，返回答案文字和思考部分的区域标记数，供后面剔除辅助区域。
+# 对照参数：generated_text；下面保留原始英文说明与类型，方便对应调用处。
 def split_answer_content(generated_text: str) -> tuple[str, int]:
     """Return ``(answer_text, thought_mask_count)`` for a generated completion.
 
@@ -110,12 +119,16 @@ def split_answer_content(generated_text: str) -> tuple[str, int]:
     return answer, thought.count(MASK_TOKEN)
 
 
+# 【步骤说明】先去掉思考内容，再解析框；返回只属于最终答案的坐标列表。
+# 对照参数：generated_text；下面保留原始英文说明与类型，方便对应调用处。
 def parse_answer_bboxes(generated_text: str) -> list[list[int]]:
     """Extract final-answer boxes, excluding a preceding thought block."""
     answer, _ = split_answer_content(generated_text)
     return parse_bboxes(answer)
 
 
+# 【步骤说明】接收模型位置和计算设备，加载已训练的模型、图片文字处理器，并返回区域特殊符号的数字编号。
+# 对照参数：checkpoint, device, attn_implementation；下面保留原始英文说明与类型，方便对应调用处。
 def load_model_and_processor(
     checkpoint: Path,
     device: torch.device,
@@ -139,6 +152,8 @@ def load_model_and_processor(
     return model, processor, mask_token_id
 
 
+# 【步骤说明】接收图片、完整问题和处理器，用模型自带的对话格式生成输入；返回数字输入与原始提示文字。
+# 对照参数：processor, image, text, device；下面保留原始英文说明与类型，方便对应调用处。
 def build_inputs(
     processor: AutoProcessor,
     image: Image.Image,
@@ -150,6 +165,8 @@ def build_inputs(
     ``text`` is passed through unchanged. The template supplies image tokens and
     the assistant generation prefix. Returns ``(inputs, prompt_text)``.
     """
+    # 第 1 步：把图片与问题放进一条用户消息。模型要求的角色和起止符号由其自带模板补上，
+    # 不是简单把任意文字拼在图片文件名后面；训练和使用时的格式需要一致。
     messages = [{
         "role": "user",
         "content": [
@@ -161,6 +178,8 @@ def build_inputs(
         messages, tokenize=False, add_generation_prompt=True,
     )
 
+    # 第 2 步：处理器把文字换成编号，并把图片缩放、切成小块。
+    # input_ids 是文字/图片占位位置；pixel_values 是实际图片内容；image_grid_thw 记住网格尺寸。
     processor.tokenizer.padding_side = "left"
     inputs = processor(
         text=[prompt_text],
@@ -173,6 +192,8 @@ def build_inputs(
     return inputs, prompt_text
 
 
+# 【步骤说明】根据已准备输入逐步生成回答；返回新生成的编号、解码文字和区域标记总数，总数包含思考中的标记。
+# 对照参数：model, processor, prompt_inputs, max_new_tokens, mask_token_id, do_sample, temperature, top_p, top_k；下面保留原始英文说明与类型，方便对应调用处。
 def generate_completion(
     model: XiaomiLensQwen3_5ForConditionalGeneration,
     processor: AutoProcessor,
@@ -191,6 +212,7 @@ def generate_completion(
     - `mask_count`: total `<|mask|>` count, including reasoning and answer masks.
       A count of zero means there are no masks to decode.
     """
+    # 先记住问题占了多少位置。generate 返回时带有原问题前缀，之后必须切掉，才是模型新写的回答。
     prompt_length = prompt_inputs["input_ids"].shape[1]
 
     gen_kwargs = dict(max_new_tokens=max_new_tokens, do_sample=do_sample)
@@ -206,10 +228,13 @@ def generate_completion(
     completion_ids = output_ids[:, prompt_length:]
     mask_count = int((completion_ids == mask_token_id).sum(dim=1)[0].item())
 
+    # 保留特殊符号：skip_special_tokens=False 很关键。若把区域符号当无用字符删除，就无法按文字核对区域个数。
     generated_text = processor.tokenizer.decode(completion_ids[0], skip_special_tokens=False)
     return completion_ids, generated_text, mask_count
 
 
+# 【步骤说明】把原问题与刚生成的回答拼在一起再计算一次，读取每个区域标记处的状态，返回所有区域的原始像素分数。
+# 对照参数：model, prompt_inputs, completion_ids, mask_token_id, device；下面保留原始英文说明与类型，方便对应调用处。
 def run_forward(
     model: XiaomiLensQwen3_5ForConditionalGeneration,
     prompt_inputs: dict,
@@ -229,12 +254,14 @@ def run_forward(
     prompt_mask = prompt_inputs["attention_mask"]
     prompt_length = prompt_ids.shape[1]
 
+    # 重新计算时，新生成的每个位置都是真实内容，因此注意力有效标记全为 1，再与问题部分拼起来。
     completion_mask = torch.ones_like(completion_ids)
     input_ids = torch.cat([prompt_ids, completion_ids], dim=1)
     attention_mask = torch.cat([prompt_mask, completion_mask], dim=1)
 
     mm_token_type_ids = prompt_inputs.get("mm_token_type_ids")
     if mm_token_type_ids is not None:
+        # 新回答是文字位置，因此多模态类型标记补零；图片仍保留在原问题中的位置。
         completion_mm = torch.zeros(
             completion_ids.shape,
             dtype=mm_token_type_ids.dtype,
@@ -250,6 +277,8 @@ def run_forward(
             "run_forward called but completion contains no <|mask|> tokens "
             "(K=0 should be filtered by the caller before reaching here)."
         )
+    # 区域在“新回答”中的下标，要加上问题长度才是“完整序列”中的下标。
+    # 例如问题有 100 个位置、区域在回答第 8 个位置，则完整序列下标是 108（从 0 开始）。
     mask_positions = (completion_mask_indices + prompt_length).unsqueeze(0)  # (1, K)
 
     with torch.inference_mode():
@@ -268,6 +297,8 @@ def run_forward(
     return pred_masks  # (1, K, grid_h*16, grid_w*16)
 
 
+# 【步骤说明】接收图片、预测区域及图片网格信息；在模型画布上给区域着色、可选画框，再返回用于保存的叠加图片。
+# 对照参数：image, pred_masks, image_grid_thw, patch_size, merge_size, threshold, palette, alpha, bboxes, draw_bbox；下面保留原始英文说明与类型，方便对应调用处。
 def visualize_pixel_mask(
     image: Image.Image,
     pred_masks: torch.Tensor,
@@ -311,11 +342,15 @@ def visualize_pixel_mask(
     print(f"Image grid: {raw_h}x{raw_w} raw patches; canvas {pixel_w}x{pixel_h}px")
     print(f"K = {K} <|mask|> mask(s)")
 
+    # 显示尺寸：这里把原图缩放到模型处理画布，而不是将区域放回原始照片分辨率。
+    # 例如网格是 20×30，小块边长 16，则画布高 320、宽 480；Image.resize 接收顺序是宽、高。
     canvas = image.resize((pixel_w, pixel_h), Image.LANCZOS).convert("RGBA")
     fill_alpha = int(alpha * 255)
     total = pixel_h * pixel_w
 
     for k in range(K):
+        # 原始分数不限制范围，sigmoid 将其变成 0～1。分数为 0 时概率是 0.5。
+        # 通常按阈值决定是否着色；threshold=0 时按概率深浅画热力图，并不是所有像素一律选中。
         probs = torch.sigmoid(pred_masks[0, k]).float().cpu().numpy()  # (H, W)
         fg_color = ImageColor.getrgb(palette[k % len(palette)])
         if threshold > 0:
@@ -341,6 +376,8 @@ def visualize_pixel_mask(
         for k, bb in enumerate(bboxes):
             if not bb or len(bb) < 4:
                 continue
+            # 框坐标使用 0～1000 的相对刻度。例如宽 480 时，横坐标 500 表示第 240 像素。
+            # 框来自生成文字，区域来自解码器；它们不是同一段代码的两个画法。
             x0 = bb[0] / 1000.0 * pixel_w
             y0 = bb[1] / 1000.0 * pixel_h
             x1 = bb[2] / 1000.0 * pixel_w
@@ -352,6 +389,7 @@ def visualize_pixel_mask(
     return canvas.convert("RGB")
 
 
+# 【步骤说明】读取命令行提供的文件位置、运行选项和默认值，返回解析后的选项对象；本函数不执行模型预测。
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -442,6 +480,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+# 【运行入口】读取图片和选项，加载模型，先生成回答再解码最终答案区域，按设置保存合成图或每区域单图；没有区域就直接结束。
 def main() -> None:
     args = parse_args()
     output_path = args.output or args.image.parent / "infer_result.jpg"
@@ -459,6 +498,8 @@ def main() -> None:
     if args.seed is not None:
         torch.manual_seed(args.seed)
 
+    # 主线 A：先让模型自由生成文字。此时还没有把目标区域画出来。
+    # 回答中若出现 <|mask|>，就相当于留下一个“这里有一个目标区域”的索引。
     completion_ids, generated_text, total_mask_count = generate_completion(
         model, processor, prompt_inputs, args.max_new_tokens, mask_token_id,
         do_sample=do_sample, temperature=args.temperature,
@@ -472,6 +513,8 @@ def main() -> None:
         print("No answer <|mask|> token; skipping mask visualization.")
         return
 
+    # 主线 B：将刚才生成的整段回答重新送入同一个模型，读出各区域标记的上下文状态。
+    # 这是基于模型自己的回答生成区域，不是把人工正确区域喂给模型。
     pred_masks = run_forward(model, prompt_inputs, completion_ids, mask_token_id, device)
     pred_masks = pred_masks[:, thought_mask_count:]
     K = pred_masks.shape[1]

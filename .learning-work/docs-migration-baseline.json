@@ -1,0 +1,433 @@
+{
+  "files": {
+    "README_CN.md": {
+      "sha256": "c195af2556334a4edf205532ba5c119b68f40057c4f95de8407ab10d9e21beaa",
+      "content_sha256": "a1ce9bcafa0b722af03ef08d249d48397e73113d8d589f1af1288c2e74200ae9"
+    },
+    "infer.py": {
+      "sha256": "49e93abdde87e50a434042c51889fab974ec49294d834cd3021c4758b53ad62e",
+      "content_sha256": "438b381d3b91866994f41438e89cc4cddd6a2c59220ab43588da9c9769de6a9c"
+    },
+    "train.py": {
+      "sha256": "e5290aad8fb9de6d0f344f5c1420b9041d3de1c0007815a27fd7e91860627e8a",
+      "content_sha256": "22a59be7a4299dd65413c3b3d310fd543f4571efdf162f7c95170ca54a8e148d"
+    },
+    "README.md": {
+      "sha256": "4f34e21e28e8c8dbfb08a5a1a7427bb03e558387d693cf7eb7043bcad40e855a",
+      "content_sha256": "9181d2d8a180607536c55e9b3901d0031085c13322f3c2b631e2c43687ce541b"
+    },
+    "requirements.txt": {
+      "sha256": "ffb9cdd5f8a03b795e8e46357141d66125d77b2566b2cea0d995495c135e96d5"
+    },
+    "pyproject.toml": {
+      "sha256": "852476c444389d2c846ad356ef633453ac6c4e21d5d0eddd7f601f988c4530b9"
+    },
+    ".gitignore": {
+      "sha256": "fef24e9b72831b50d0dd13d395430ec5bbf3dfdbdcdf9eb158dc2d51a778d696"
+    },
+    "eval/run.py": {
+      "sha256": "53aefdb04e7a156b8a798110f478ed94e73984f72046793a173710116722df70",
+      "content_sha256": "74c663e4c00cd71b018a590ee946889461a3327d7004f72a5bb2e1b9e9f83cd5"
+    },
+    "eval/run.sh": {
+      "sha256": "a0792ad3c0477973496857790549d88785f64c24b4c80458aeec0a84bd6ad138",
+      "content_sha256": "6de3e5f82a071f44a80ac92a3ef2df534fc99e5607bd20f9abc22dff1fbed3d8"
+    },
+    "docs/.nojekyll": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "docs/index.html": {
+      "sha256": "8e109db6098f730d699fbd44f152b6f096f91c2e6ad32ebb6054508f1ae7cc96"
+    },
+    "scripts/train_stage2.sh": {
+      "sha256": "c25b304bd2a099fe7149d39bb08cb45ab5fb262bbb17a82ffe4f7c0ac0d7d629",
+      "content_sha256": "9f217663e5f8459e6069a576dc81eda3365496edba14e33c86c5c9b8f96f8333"
+    },
+    "scripts/train_stage1.sh": {
+      "sha256": "c404f098c110d8f4652442db533edc2043eaf63af2329f21836272d02399af37",
+      "content_sha256": "75a173d40cbb848dc50ecd25bc684ab52a1da02bcd5922e0a1989e94e50e9dd6"
+    },
+    "tools/prepare_base_model.py": {
+      "sha256": "88c15d6d707aaa5e90ec4d258f60ac22e9b9f8fabfaa1a78524d8b38259ae1a0",
+      "content_sha256": "a77d54cded91a5cb0969c1cd27c8854ac944b58fec19c28d65f487482808e64a"
+    },
+    "src/xiaomi_lens/constants.py": {
+      "sha256": "4cc1f68ad53b4d093f4c8efd29b9f62a253671eb810dc0632c2a0f920be8267c",
+      "content_sha256": "b7c90fe825eaee75de23b34cc832c5e98cfc3ca113d32dd5a7ea34115ad63d5e"
+    },
+    "src/xiaomi_lens/__init__.py": {
+      "sha256": "8e55a27f915e7ad3c35690e8c8759fe1f654fa8cf3794a3af76f0b82baf4928c",
+      "content_sha256": "c3460a4e730cebcf8a84dde79ee78b56fba237a6c62de162ded07f1b57b527ea"
+    },
+    "src/xiaomi_lens/integrations/__init__.py": {
+      "sha256": "d2869090cb243d7a1c9a2f17e81e73b18f3b18c74dd6aa82ea994cc27232ec62",
+      "content_sha256": "ad2e13b69c4fc1fda46413f740f426fc1793cfc6d6da8d226ba619f1aef48be7"
+    },
+    "src/xiaomi_lens/model/config.py": {
+      "sha256": "c84b6719b475113a6e5636fe31a4913bc4d9b075069e03944f9d18a0372db7a6",
+      "content_sha256": "6b62949817b5529c12809c1971c0682505a604577e77c5c6a47178235f05041c"
+    },
+    "src/xiaomi_lens/model/lm_loss.py": {
+      "sha256": "b5ee1431b93e1161de9345113ebc26da8fb450fa492f7f460bec83f95a34de4f",
+      "content_sha256": "82cbc8475a159f142af4c9233e04ceb8bdd16c326e53850029d6813742bace6f"
+    },
+    "src/xiaomi_lens/model/pixel_mask_decoder.py": {
+      "sha256": "8addbe32d2fdd9144cd1e2e9c4e9e5505524530b80eb3dcc058b37ec2c44e749",
+      "content_sha256": "b00045da4fc65ac22f08d3da986bd76884211012f9d93ac244985801fc705193"
+    },
+    "src/xiaomi_lens/model/__init__.py": {
+      "sha256": "988e0df63f50080c8edeb50471a7da75e6e01de752525ac143e25b3d85aa586e",
+      "content_sha256": "05b52862aebe3714bd0ce9b12ffcb0e9fc40fd96b2babf3d4c386a6971f247ef"
+    },
+    "src/xiaomi_lens/model/modeling_xiaomi_lens.py": {
+      "sha256": "b600b2298d3a3d56af84aad2cbaf038f593676955cc3d0e21e30bae9d49f1800",
+      "content_sha256": "a188a977363beb38f1e5bd82f297a2f62dcea70603417463c00976a45d114c6f"
+    },
+    "src/xiaomi_lens/model/losses.py": {
+      "sha256": "2eb1c33fb1f3fcda68e2ea53cde581732794b2199695140f98a837b40c0baa19",
+      "content_sha256": "e1d88a8d6c27361c647bd2aa37e2bccb8ae8a9c28e8b4d44e462f53a6fb88b1c"
+    },
+    "src/xiaomi_lens/train/config.py": {
+      "sha256": "0408cbd343a5bd1d944c15de11375c06e934e05d1ac5ede7c5e12f51ea94c8ce",
+      "content_sha256": "aac8d62e96def01323a73a091a1e79a6ab458a84c55bd1990ac8b094e912721a"
+    },
+    "src/xiaomi_lens/train/collator.py": {
+      "sha256": "b84af8991b8bf8cfcb665ba7cefc4e9dc1688e61c19dfb683ac2c3012506ddaa",
+      "content_sha256": "8afea8b0314261821d30303d5853e11b81b576c6438921fb84ce92d9f88f9246"
+    },
+    "src/xiaomi_lens/train/trainer.py": {
+      "sha256": "b31a853d3f72fa5344082a6a007d3802ec42c15c145d22644fc6141cba236ae0",
+      "content_sha256": "7654d42a007e6212667b7536fb6cf2afd48ed776b7d9d80796772a4b461b6e95"
+    },
+    "src/xiaomi_lens/train/__init__.py": {
+      "sha256": "3110e9c8ac84001c4c7e538be175266fd40daf8e639bc0847fd60728bbd1cc73",
+      "content_sha256": "78b3327dea5cec74121723b27141dde95fcdb021a26c6b3180ad010229d11cac"
+    },
+    "src/xiaomi_lens/train/preflight.py": {
+      "sha256": "ce302935798299602a2527ff98153158a8af9daf78215030d297c33b947c3458",
+      "content_sha256": "9a66c427e4082f0cc8f4448e1760d8b3a7a9e9ecd56ad24a0183ca497f197c2e"
+    },
+    "src/xiaomi_lens/train/sampler.py": {
+      "sha256": "56591ee953c8e9d2e302963e9e73c5e5d6a636767a554a0662c73c4fab94ed22",
+      "content_sha256": "d2d2b3ea5c2c6ace81b4406efb6820f821c4a85b0232d4b14acb1376834bf214"
+    },
+    "src/xiaomi_lens/train/configs/zero2.json": {
+      "sha256": "0653989952b279637f9b6e5607661dee1213b613f2d2cfb6d858ae7b156ab7a3"
+    },
+    "src/xiaomi_lens/train/configs/zero1.json": {
+      "sha256": "69ea57ed52d99977ee7d98b0ae6a7aa4127ea7d2e9dd63fcb99004db386f9825"
+    },
+    "src/xiaomi_lens/train/data/render.py": {
+      "sha256": "b142a5837db9bd26f26715b77dec89f1fd0a7ebc656e37fff486255a2ec90ad2",
+      "content_sha256": "37e91936dbdf8aa019225e96ea280aea17e98352c1487a410ebc969f42913f07"
+    },
+    "src/xiaomi_lens/train/data/__init__.py": {
+      "sha256": "ebf31ca55e40548c6903f805ddf1893147de747306977e8dd9a6e041a4d791af",
+      "content_sha256": "07e611615d293dbd29df81062587fdec8c90fb194e288ddc317a9d2e6f058fbe"
+    },
+    "src/xiaomi_lens/train/data/io.py": {
+      "sha256": "0983af0d067c248b06558d7834d859563a624a04ef8b7c286954d9338cf4a64a",
+      "content_sha256": "0b9783363848eda841f193e9fc9858f70bf8be05c2cdd68919f72d619e962561"
+    },
+    "src/xiaomi_lens/train/data/jsonl_index.py": {
+      "sha256": "e5d5b62d791ffe28fb6a0d169d47ed9b4d89c0b2af953e7baf0ca7160172f9e9",
+      "content_sha256": "658fc8d6a39c94841b9f712f23d109a5c58cad8c5b6b8bea48a17d4a544ef391"
+    },
+    "src/xiaomi_lens/train/data/sft_format.py": {
+      "sha256": "fdcb72d94943f1f94e41b59ef1c721ebd893d44083e9c3367adaa9592d394574",
+      "content_sha256": "cd77b01a97f4f84fb581a4a819e838450ca14322e510f3759eb93883ab0de093"
+    },
+    "src/xiaomi_lens/train/data/preprocess.py": {
+      "sha256": "1f1f1367fe45443c56596b4796fbb9568dc3d7272d0dcc0426673fa45cbc69a8",
+      "content_sha256": "f50a056d61dde6c3aca6cd4347c2b6744db2aecc41c2ba87ce993d32aa793c41"
+    },
+    "src/xiaomi_lens/train/data/segmentation.py": {
+      "sha256": "98822cd7f82f4f938e859d3c925a577ee965966759cc4af0233fadef921e8978",
+      "content_sha256": "b4e1a42c48ffd0b7ef926b98aa32eec029a3c3c28f4f31eb7fe11650cd54fe73"
+    },
+    "src/xiaomi_lens/integrations/vllm/mask_service.py": {
+      "sha256": "302870d4ba6d8560283a3c794a77534211f638d256e3e313a4b4e67d10c23399",
+      "content_sha256": "f84331403e4c38f8715d7916b68cb8942eccb1c98c90caa09c7516aa7f8e07c4"
+    },
+    "src/xiaomi_lens/integrations/vllm/plugin.py": {
+      "sha256": "438e8744502859c0f3afae56a72fa341bca7bd3126cece0bedce771d1d5171c5",
+      "content_sha256": "064a3878406a0c1f68153cb82793df33de07dd422b3e1089b6b44b669db8b7b2"
+    },
+    "src/xiaomi_lens/integrations/vllm/client.py": {
+      "sha256": "da20e02b4c91335b76063b83fbe3f9e79e0ea97aee89389b7da391ecec11aece",
+      "content_sha256": "f7ff92d4ff57a0122822aebc81ffb75e93e1b2fbfe8ec50a5eb62bfd326e6dd4"
+    },
+    "src/xiaomi_lens/integrations/vllm/vllm_model.py": {
+      "sha256": "9c79b69f30029cc99a0354e53a3eb39ba441dd1a685fd94e6be59d03c86b3514",
+      "content_sha256": "6c3b573a251b33948936a99c85d7efbb0388764ce219475797e7973cd8339aa7"
+    },
+    "src/xiaomi_lens/integrations/vllm/run_vllm_mask.sh": {
+      "sha256": "46d7f4ed43df8064d4e3187908ce7f06ef128a1d02d88c4eaf04f79fae6f745e",
+      "content_sha256": "0ea020630ddfbad40383e11e9df3001910ac9b0e713b917de108b52015366334"
+    },
+    "src/xiaomi_lens/integrations/vllm/io_processor.py": {
+      "sha256": "1180429cad6c1458bae695c0206b51e742889204a81396c7e9c1615ea31da144",
+      "content_sha256": "fd0376a0397bbd3300c371e020dd8ba3957a4da563ba6c1a826ed418a9edd1f4"
+    },
+    "src/xiaomi_lens/integrations/vllm/run_vllm.sh": {
+      "sha256": "9f08cd7bc34b9bbea734332bfd43ac7bb9d8911927c4fea67597e1f7e5a4bc13",
+      "content_sha256": "7b9cdfa7f5eef0f1d702e1d963563388765edcd623166573a0a53e018cb81cbc"
+    },
+    "src/xiaomi_lens/integrations/vllm/__init__.py": {
+      "sha256": "fbe34a538a86965f7ecba8f12674de2fc463a3f31292762845f67ed9e7991e24",
+      "content_sha256": "3ba9a1a7d58e5b4518e5c61497c8675942befba84f4525dcdc63ae49f493a1cf"
+    },
+    "src/xiaomi_lens/integrations/vllm/prepare_served.py": {
+      "sha256": "0f008c6d024fbf953ff6ec8bc379c0ee7dd36be57fc81735f437683ea80ea3ee",
+      "content_sha256": "bd8e6f611493d8f21cb4775930f24b5f8cb0855b49deee555bf74aedf0b687e6"
+    },
+    "examples/train/README_CN.md": {
+      "sha256": "c01a3cba20db743a6faa94df48fdee697058f7981ef0a418e69a7e061629edfd",
+      "content_sha256": "dfb6fdf3df91803a54a0df1732a5560b5fbc53e3fcc67509475a88ee093b4d4d"
+    },
+    "examples/train/make_toy_data.py": {
+      "sha256": "61e8eded2dbbe74ce2934a419a0b89a796ab26768ac67814ca2c602f95d32b05",
+      "content_sha256": "d1b93f3f6bf8c40692b230b18216b13f23bfcf350968b45aa2838f6e2d6786c0"
+    },
+    "examples/train/stage1.yaml": {
+      "sha256": "d58a769f8eb9d8252facf891dfa8b19df7b050cc2b884b57a0357362367162aa"
+    },
+    "examples/train/README.md": {
+      "sha256": "81d3146655e956c785b94a3331eda961560f3c5d2496c1c25d48eaa32d5324f0",
+      "content_sha256": "7da4f9db50996013f40e7c8efc7dc6b9bec5f1b50720ff13cb8f44daf7b1c3c4"
+    },
+    "examples/train/stage2.yaml": {
+      "sha256": "3e5a337aea4f0d48fc9ad09631e59dc1113ce2d146e111be0bf8416d6cb514fa"
+    },
+    "examples/train/sample/sample.yaml": {
+      "sha256": "cf6fc12696a6859c7c60d4eaca85b8d7f25cf875406647149a281ddb0bb5c5f4"
+    },
+    "examples/train/sample/sample.jsonl": {
+      "sha256": "2101b71ddb9c481bc1fb762bddf3811dfea26ad9fab8d1069930dab9d371a601"
+    },
+    "examples/train/sample/images/COCO_train2014_000000581739.jpg": {
+      "sha256": "04a9f6e1bb24986d259e4b7f9b181976091d7d97206c0717d60e8bc93d4192b7"
+    },
+    "examples/train/sample/images/COCO_train2014_000000580562.jpg": {
+      "sha256": "120b4315e606effacdf03b6acf9360717b7136189670455be4619c65a6e3d0c7"
+    },
+    "docs/assets/samples/res_cow.gif": {
+      "sha256": "bf364fcddf91f00f74fba43a49cc866a58e1e6c1b0bc178716f262f29b007760"
+    },
+    "docs/assets/samples/coco_bottles.gif": {
+      "sha256": "5d8a924091ef92fadd015fb554962b35d1217bba667a7af350192709aa437479"
+    },
+    "docs/assets/samples/roborefit_pepsi.gif": {
+      "sha256": "1473a6449fa7e160054d6d48262bfe180417ecc24d96a982e4fd2310cde076ab"
+    },
+    "docs/assets/samples/rec_bear.gif": {
+      "sha256": "c955ae8b9fa1a9e3c34dbf3e950e81d9a784bb9c5a581bb227c274534ad5ca78"
+    },
+    "docs/assets/samples/res_grapefruit.gif": {
+      "sha256": "4cdb45db1066636c88a9177a20e50f9b8d8f70590d7833b76807865d5032eb19"
+    },
+    "docs/assets/samples/coco_oranges.gif": {
+      "sha256": "1df90b005097f945a04aa03e4d50b474ac49b29364f3d083a596a5fc459020d0"
+    },
+    "docs/assets/samples/reasonseg_citrus.gif": {
+      "sha256": "dfd8400af0e4a458fc82765ef5cba1cc450bc1cdfd1dc94dedca46b1a3f24ce4"
+    },
+    "docs/assets/samples/coco_surfboards.gif": {
+      "sha256": "b79717c79e829060162edd5ce465e723d3f08ff973f8ca2b5dbceaaacde27e8f"
+    },
+    "docs/assets/samples/rec_spoon.gif": {
+      "sha256": "7c98caf0e4f5fd13b0799b0269b860e30d7128aedf046a17cf81c9b502d1fa56"
+    },
+    "docs/assets/samples/countqa_leaves.gif": {
+      "sha256": "877a71dc6fc97af6f5e2d3c221b952d203ebefbb210c53280de200633ff152a9"
+    },
+    "docs/assets/samples/showcase_all_domains.gif": {
+      "sha256": "44e54fa02b550ff7bd8ef34b6b3bc69d79c7a37d4461a69f2f8d81554af54409"
+    },
+    "docs/assets/samples/hrbench_trailer.gif": {
+      "sha256": "72b7ce2b5f3d1b36ee2fb3120f4112e1137ef4e11bc03c24e492c6aac9c46d44"
+    },
+    "docs/assets/samples/reasonseg_satellite.gif": {
+      "sha256": "c1f35988c04821fab52959594f6d9b731205e42cb53f7122e1cfb39e88e06471"
+    },
+    "docs/assets/samples/res_kite.gif": {
+      "sha256": "b063961127f739ff25133b52bbbda3f4119765a9b147b4df4b1bbe65d36a36f3"
+    },
+    "docs/assets/samples/hrbench_chairs_bicycles.gif": {
+      "sha256": "43d24b6d8b9e069668a866054c0233bb182943929708ffb0820d8154fcfb4415"
+    },
+    "docs/assets/samples/roborefit_cup.gif": {
+      "sha256": "0a2e7352e7e6464c38e1b543d18899af81edd53dd1b43de89194169d1a6a4282"
+    },
+    "docs/assets/samples/roborefit_cleanser.gif": {
+      "sha256": "d4836273bd04e4073ca547a3117f136dafea8b199e03dfa964e1ee77d3a950f5"
+    },
+    "docs/assets/samples/reasonseg_gifts.gif": {
+      "sha256": "1806f346967007c68f5b58e79e31ac9af4e304978a99f67068ec2972f2856e39"
+    },
+    "docs/assets/samples/rec_baseball.gif": {
+      "sha256": "47f8b98c2f10e90c006e6d5d2a94eb335afea949df83052dcaa77f8825900950"
+    },
+    "docs/assets/samples/rec_phone.gif": {
+      "sha256": "03432ed4c4001fc9983d2c897e44ed19e87cb4659c462c6f7160a04abbb7adbe"
+    },
+    "docs/assets/samples/coco_people.gif": {
+      "sha256": "6e118751985db16e7ef7c63cd127a57248d528ad074cc13a155f5835dc7c873a"
+    },
+    "docs/assets/samples/roborefit_book.gif": {
+      "sha256": "1c040b7522ae5f613556811d6604265cc9d575483ed627ef9f2dac8becce2dc4"
+    },
+    "docs/assets/samples/res_laptop.gif": {
+      "sha256": "56b4f5a0496ff82ff46f4351bf290d20f0b8001e5590787d482a11f5dfed75cd"
+    },
+    "docs/assets/samples/countqa_climbing_stones.gif": {
+      "sha256": "8b4011f21810ea9ac158bc7dc4683cb5181c133d5055c9334b80ba317ad471cb"
+    },
+    "docs/assets/samples/reasonseg_mower.gif": {
+      "sha256": "d239f582ca8c0faafbc88df40e95831622c038dbaeafeb3af5835cef2e18de53"
+    },
+    "docs/assets/fonts/fredoka.woff2": {
+      "sha256": "99d6c78e043710d4f83ed90716779798b7b04eb690f73e0ad0e8f32d1f0e98c2"
+    },
+    "docs/assets/fonts/jetbrains-mono.woff2": {
+      "sha256": "18be452724bfdc236c074ca94a249a7f41a86752c7d04ab258ce9ed5651f6a7e"
+    },
+    "docs/assets/fonts/OFL.txt": {
+      "sha256": "b67538025c54138561e5d658f1d2d3f93a3b60be53ba6c42ec38b83019e2680b"
+    },
+    "docs/assets/fonts/nunito.woff2": {
+      "sha256": "ba344451eab25b217a165363b1982048a5e5830a0daf36577973955a04cac793"
+    },
+    "docs/assets/figures/lensbench_evaluation.png": {
+      "sha256": "608fbfc206cb0f5a86b9dd1685145afceb2d0a53e7f570b69a26057025c91c1e"
+    },
+    "docs/assets/figures/lensbench_data_pipeline.png": {
+      "sha256": "e969a7c41c544cedefcb6b72547f4bf69cc2bb5caf2a4007c55b122d188f375e"
+    },
+    "docs/assets/figures/training_recipe.png": {
+      "sha256": "4c104f288971734ec8305cdcd4973ba11e27be75dd09ca56e40179ad44198e2d"
+    },
+    "docs/assets/figures/hero_lens.svg": {
+      "sha256": "1cc12dbe6a2c7a8b7cf7b21109d3ac667718b8468a22e2d0d546693e84cf072c"
+    },
+    "docs/assets/figures/vqa_data_pipeline.png": {
+      "sha256": "4c8e9e8192e7c0ea24e81bbedcad60b8ef7282b44dd6c1d5bca7d7b6d87f8358"
+    },
+    "docs/assets/figures/architecture.png": {
+      "sha256": "d239d7ee690947f9cb8e929356e2444e35b014b9a320dbc2edeccc066325f467"
+    },
+    "docs/assets/figures/radar_comparison.png": {
+      "sha256": "00f2c8f1467f2e2a218b6ef538946ca013f2b65f0e623f3240e3233cadeba4ca"
+    },
+    "docs/assets/figures/xiaomi-logo.png": {
+      "sha256": "ff46392c9f703222f78dd517d8e6059764483503652c5bcaa0730c40e8f965ac"
+    },
+    "docs/assets/figures/segmentation_data_pipeline.png": {
+      "sha256": "68a3810100bc68ff2751d102790e9dfb0eb9220d9540843f977575596ecb4ad0"
+    },
+    "docs/assets/video/xiaomi_lens_0_overview.mp4": {
+      "sha256": "cc64938e40bf972cce03ec1dc21402a16e2ea87c94ed982a2f40da2f5e393579"
+    },
+    "docs/assets/video/overview_poster.jpg": {
+      "sha256": "da9fd6364c6132317c6a26efe887779ebedad08f53203b4641ba32b26d38030f"
+    },
+    "docs/assets/samples/thumbs/roborefit_cup.jpg": {
+      "sha256": "61abd8c1b22743e7e77b7aef33e34e5fa1b15a6810db3b276a75568bf0c1620b"
+    },
+    "docs/assets/samples/thumbs/res_cow.jpg": {
+      "sha256": "784b6e1932b56db3d2fd4ba3128cb737ffc34db84fb2e99fa9d4457f6b9abdab"
+    },
+    "docs/assets/samples/thumbs/rec_baseball.jpg": {
+      "sha256": "5c714d2868e90b8d055ad008ddedefbc8a9a5e7d2821b3348d00da4be3e416e4"
+    },
+    "docs/assets/samples/thumbs/roborefit_pepsi.jpg": {
+      "sha256": "5889b0a76cd7b0d63295f9936c8cb348167c21f29f4bde47f90a6f5440d94b1a"
+    },
+    "docs/assets/samples/thumbs/coco_oranges.jpg": {
+      "sha256": "fb064c0228ad46b5701f751de08be95852ea2ca591a90ea2792c6a30c1d70e53"
+    },
+    "docs/assets/samples/thumbs/roborefit_cleanser.jpg": {
+      "sha256": "8c2f2966916ae259cc8c53fc83536e75524240474569b68af80452f0a1a10a13"
+    },
+    "docs/assets/samples/thumbs/countqa_leaves.jpg": {
+      "sha256": "4ddb9a25e609ab723839eb7270bf0dfb888b1b693b32f3f09da18f4dbcf10721"
+    },
+    "docs/assets/samples/thumbs/coco_bottles.jpg": {
+      "sha256": "f4e2a6e13d8eb92aa4598122de0e2a576fd7929548bcdd94f3a39b53382aaf43"
+    },
+    "docs/assets/samples/thumbs/hrbench_chairs_bicycles.jpg": {
+      "sha256": "f5987cb59678f425a3faabcc6c0b9f0f73841fadbe258b43cd4aeb362e3ab60e"
+    },
+    "docs/assets/samples/thumbs/res_laptop.jpg": {
+      "sha256": "2318bee9052668f9d8148ba92ce1e9a8e763d698eb38e6d57d38806c8d4c8366"
+    },
+    "docs/assets/samples/thumbs/roborefit_book.jpg": {
+      "sha256": "79e3eb2e1e437169a36d308a2135176e323bebdac905aef717e88589c0b7598c"
+    },
+    "docs/assets/samples/thumbs/reasonseg_mower.jpg": {
+      "sha256": "06bd072bddd7eae2c97ebfd7f1d69b939be2286d25eda687c2fc4b9e1edc4f17"
+    },
+    "docs/assets/samples/thumbs/rec_bear.jpg": {
+      "sha256": "cef2174ac4b07a750dcccd8c42ac2594f4b4f8a33212e1a941aa1997a8125523"
+    },
+    "docs/assets/samples/thumbs/rec_phone.jpg": {
+      "sha256": "646642459ad5e9546f19f6bbcf277da79c6aec21285d38fd3b538020e9a4f450"
+    },
+    "docs/assets/samples/thumbs/rec_spoon.jpg": {
+      "sha256": "6f44e61d8105cc84499fb7af516112598996fab0c86205cc94e64972352107a1"
+    },
+    "docs/assets/samples/thumbs/res_kite.jpg": {
+      "sha256": "a55b83fcc6f44c2cd30f128bf884a9a4b55c7495659a9e01bc085e3f4828a7b5"
+    },
+    "docs/assets/samples/thumbs/res_grapefruit.jpg": {
+      "sha256": "2a4197cb60f1fee5e756f77c754ad305839e1d93bf49e8bfd1eac7c59ce698a5"
+    },
+    "docs/assets/samples/thumbs/coco_people.jpg": {
+      "sha256": "17f8a42f661b2d9047a51a36dfa39df8ce43d5c8f1cf719d27e31be7de199e3c"
+    },
+    "docs/assets/samples/thumbs/reasonseg_citrus.jpg": {
+      "sha256": "4e0a8899f9ceadda9f1f18a23264a96888522499fd3ff2a0258022989669d91d"
+    },
+    "docs/assets/samples/thumbs/hrbench_trailer.jpg": {
+      "sha256": "bef231cfb76fd3c6fc88cbfb05566998147c1d5995c5666466448d9af126a5d0"
+    },
+    "docs/assets/samples/thumbs/reasonseg_satellite.jpg": {
+      "sha256": "d3c1ce31c1caa74364b0679436837911b2f264b3cc01385ac51cf0341712e0f3"
+    },
+    "docs/assets/samples/thumbs/countqa_climbing_stones.jpg": {
+      "sha256": "0eabbf53c0469b89a6992d5b1a2ce4cd07b227f8b2c8d84d4ef84a3f20cd1c45"
+    },
+    "docs/assets/samples/thumbs/reasonseg_gifts.jpg": {
+      "sha256": "109378ee3e11766db1affec767ab89d473af8cc7093e8c8ba75c107ce2cf3a97"
+    },
+    "docs/assets/samples/thumbs/coco_surfboards.jpg": {
+      "sha256": "fbe3607d01e0b10bac1b7256ec40ca9c96ca522c7d6d0883c139a318c69d8777"
+    }
+  },
+  "historical_evidence": {
+    "coverage.json": "230af16608cfd6bd48aa0737a27bc92524289033687b2df2ea2901d1b018198b",
+    "check-annotated.log": "bfd6430b8a58f4375ef421c6f6acd629d30314b6382c22189b0e4cdf1c2691e3",
+    "original-mobile.png": "2ac33245ad0a88d11b01c79c0ee014e0248bbd46e9113658a266c0c0a540da64",
+    "check-original.log": "673ff6fd5eba9e2f28294c6199c6abc8deeccbd479ffe0ba478c62cd5f41d121",
+    "files.json": "c953843b4b8facd898274077f738dcf4ac8e7dc1d2352e7f35d7b00a93b1b500",
+    "original-desktop.png": "d08f71a9d44652e1ff731326be4d57db9af90ef4655d0101f496209526261bc2",
+    "annotated-mobile.png": "a3d7706477f97ded11d3147fd9db2d6b6dc0131949112c94e74482828aba98e8",
+    "comparison-results.json": "4c198fc0baf45d7c9fb03956cf37233bc2f7db1bc0e69b82cb0968bf989ffe73",
+    "annotated-desktop.png": "d08f71a9d44652e1ff731326be4d57db9af90ef4655d0101f496209526261bc2",
+    "browser-results.json": "ce2390abe9be60ac8b643764b3db00b83f41aefdba26fd4b094a93165823fc05",
+    "browser-check.log": "17356a4a46285183b09cd413e0be8d859048701baf4e1c29db8e7515467189a4",
+    "browser-install.log": "ada45df23b0a27b0bc95b77e6d22f33aace681b6a7657986f469da3257f3916a",
+    "static-results.json": "227f5f358139582b5dc4b407224d5e3a4c4bb3de26f05cf10d7db56dc79655d2",
+    "original-sha256.json": "e5d81079a5373afc6a0c28da39e97b369d5657e2ed8d68f9e5c6fe5e3244dde9",
+    "check-original/tiny_overlay.png": "f7fc1401db75660d4bbaee067123e2c624701d5bb698fdb834a1ec3ed5d27525",
+    "check-original/real_logits.pt": "650672115029dfd52cd139aaba8b631885ede698d1674211f0017ec78dcb3a7b",
+    "check-original/component_results.json": "39f4480a0ed5aa2a1dde5be4dbf258fcd58145e5ad5103a1f96acf6f4c1f2b5e",
+    "check-original/real_results.json": "33e88a6ced281d3ab4ebeb5d7277b6cef75fddb5b4fbf78aa77f4143d1e65c7c",
+    "check-original/real_overlay.png": "2e4b291bce5718f51d7894cde1e91193779729abcc61c4c62da9c3eb8e2fdcde",
+    "check-annotated/tiny_overlay.png": "f7fc1401db75660d4bbaee067123e2c624701d5bb698fdb834a1ec3ed5d27525",
+    "check-annotated/real_logits.pt": "650672115029dfd52cd139aaba8b631885ede698d1674211f0017ec78dcb3a7b",
+    "check-annotated/component_results.json": "39f4480a0ed5aa2a1dde5be4dbf258fcd58145e5ad5103a1f96acf6f4c1f2b5e",
+    "check-annotated/real_results.json": "33e88a6ced281d3ab4ebeb5d7277b6cef75fddb5b4fbf78aa77f4143d1e65c7c",
+    "check-annotated/real_overlay.png": "2e4b291bce5718f51d7894cde1e91193779729abcc61c4c62da9c3eb8e2fdcde"
+  }
+}
