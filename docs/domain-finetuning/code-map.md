@@ -22,6 +22,8 @@
 | tools/domain_auxiliary_check.py | 在val检查辅助图片作用 |
 | tools/report_domain_results.py | 汇总结果及审阅图片页 |
 | examples/domain_predict.sh | 真实多模态样本调用演示 |
+| tools/review_description_samples.py | 限定533条描述的逐图复核、写回和证据检查 |
+| src/xiaomi_lens/description_v2/visual_review.py | 本地视觉推理、逐句复核、保守删句和范围核对 |
 | tools/build_domain_review.py | 固定验证样本的图文审阅页 |
 | scripts/domain.sh | 使用 qwen3vl 与本项目代码启动命令 |
 

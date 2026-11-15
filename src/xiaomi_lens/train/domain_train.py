@@ -6,6 +6,7 @@ import numpy as np
 import torch
 from ..domain_runtime import load, build, save_checkpoint, seed_all, CONFIG
 from ..domain_evaluation import evaluate
+from ..description_v2 import select_answer_row
 from .data.domain import DEST, ROOT, jsonlines, write_json, NAMES
 
 
@@ -100,7 +101,7 @@ def main():
         total = 0.0
         t = time.monotonic()
         for i, row in enumerate(order):
-            inputs = build(processor, row, a.rgb_only, training=True)
+            inputs = build(processor, select_answer_row(row, a.rgb_only), a.rgb_only, training=True)
             with torch.autocast("cuda", dtype=torch.bfloat16):
                 out = model(**inputs, use_cache=False)
                 loss = out.loss

@@ -1,4 +1,8 @@
-"""为固定30个val样本导出原图、标注、预测和文字，便于逐项审阅。"""
+"""为固定30个val样本导出原图、标注、预测和文字，便于逐项审阅。
+
+v3：rgb（--rgb-only）模型的参考答案取 answer_optical，其余取 answer；
+缺光学版显式报错，不静默回退到多图版。纯函数 reference_for 可单测。
+"""
 
 from pathlib import Path
 import json
@@ -6,6 +10,16 @@ import numpy as np
 import torch
 from PIL import Image, ImageDraw
 from xiaomi_lens.train.data.domain import ROOT, DEST, NAMES, jsonlines, write_json
+
+
+def reference_for(name, row):
+    """按模型给出应展示的参考答案：rgb 用光学版，baseline/multiview 用多图版。"""
+    if name == "rgb":
+        if "answer_optical" not in row or not row["answer_optical"]:
+            raise ValueError("rgb 模型缺光学版答案（answer_optical），禁止回退到多图版")
+        return row["answer_optical"]
+    return row["answer"]
+
 
 rows = jsonlines(DEST / "val.jsonl")
 chosen = [r for name in NAMES for r in [x for x in rows if x["source"] == name][:10]]
@@ -45,7 +59,7 @@ for name in ["baseline", "rgb", "multiview"]:
                 {
                     "model": name,
                     "id": row["id"],
-                    "reference": row["answer"],
+                    "reference": reference_for(name, row),
                     "answer": answer["answer"],
                     "derived": answer["derived_description"],
                 }

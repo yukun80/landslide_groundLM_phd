@@ -12,4 +12,5 @@
 
 ## 滑坡领域微调
 
-[模型准备、数据抽取、训练、预测与评估](docs/domain-finetuning/README.md)
+- [模型准备、数据抽取、训练、预测与评估](docs/domain-finetuning/README.md)
+- [中文描述改进 v2：逐图复核、两版答案与检查结论](docs/description-v2/README.md)
