@@ -1,4 +1,4 @@
-"""领域评测入口；测试集须在两个正式训练版本完成并锁定后使用。"""
+"""领域评测入口；测试集须在所选正式训练版本完成并锁定后使用。"""
 
 import argparse, json, hashlib
 from pathlib import Path
@@ -11,11 +11,12 @@ p.add_argument("--checkpoint")
 p.add_argument("--split", choices=["val", "test"], default="val")
 p.add_argument("--rgb-only", action="store_true")
 p.add_argument("--output", required=True)
+p.add_argument("--lock", default="outputs/final-models-locked.json")
 a = p.parse_args()
-if a.split == "test" and not (ROOT / "outputs/final-models-locked.json").exists():
-    raise RuntimeError("先完成对照训练并锁定最终模型，不能提前查看最终评估")
+if a.split == "test" and not (ROOT / a.lock).exists():
+    raise RuntimeError("先完成正式训练并锁定最终模型，不能提前查看最终评估")
 if a.split == "test":
-    lock = json.loads((ROOT / "outputs/final-models-locked.json").read_text())
+    lock = json.loads((ROOT / a.lock).read_text())
     if (
         hashlib.sha256((DEST / "test.jsonl").read_bytes()).hexdigest()
         != lock["test_sha256"]

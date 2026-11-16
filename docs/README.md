@@ -20,3 +20,5 @@
 - [文档维护检查单](maintenance.md)
 
 最外层 docs 是新增文档的统一位置；算法目录内的 docs 是原项目展示网站。
+
+- [500条独立样本与本地推理页面](local-inference/README.md)

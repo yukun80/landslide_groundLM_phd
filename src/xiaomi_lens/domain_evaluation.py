@@ -5,7 +5,7 @@ import json, hashlib
 import torch
 import numpy as np
 from PIL import Image
-from .domain_runtime import predict
+from .domain_runtime import predict, PROMPT, CONFIG
 from .train.data.domain import ROOT, write_json
 
 
@@ -43,6 +43,8 @@ def evaluate(model, processor, rows, outdir, rgb_only=False):
         "model": digest.hexdigest(),
         "ids": [r["id"] for r in rows],
         "rgb_only": rgb_only,
+        "prompt": PROMPT, "settings": CONFIG,
+        "rows_sha256": hashlib.sha256(json.dumps(rows, sort_keys=True).encode()).hexdigest(),
     }
     if (outdir / "contract.json").exists() and json.loads(
         (outdir / "contract.json").read_text()
@@ -71,7 +73,7 @@ def evaluate(model, processor, rows, outdir, rgb_only=False):
             # 自动检查只能找出明显越界表达，不能替代逐图审阅。
             item["unsupported_terms"] = [
                 s
-                for s in ["降雨导致", "地震导致", "毫米", "高风险", "危险等级"]
+                for s in ["降雨导致", "地震导致", "毫米", "高风险", "危险等级", "活动滑坡", "形变较大"]
                 if s in result["answer"]
             ]
             write_json(folder / "score.json", item)
@@ -118,6 +120,9 @@ def evaluate(model, processor, rows, outdir, rgb_only=False):
                 r.get("answer_target_present") is None for r in items
             ),
             "text_mask_conflicts": sum(bool(r["text_mask_conflict"]) for r in items),
+            "empty_answers": sum(not r["answer"].strip() for r in items),
+            "missing_region_markers": sum(r["mask_count"] == 0 for r in items),
+            "unsupported_answers": sum(bool(r["unsupported_terms"]) for r in items),
             "truncated_answers": sum(r["truncated"] for r in items),
             "mean_seconds": float(np.mean([r["seconds"] for r in items])),
         }
@@ -128,4 +133,7 @@ def evaluate(model, processor, rows, outdir, rgb_only=False):
         "自动检查及区域评分不等于人工认可描述正确，需查看图片与回答"
     )
     write_json(outdir / "summary.json", summary)
+    if len(rows) >= 30:
+        from .train.run_review import prepare_review
+        prepare_review(rows, outdir)
     return summary

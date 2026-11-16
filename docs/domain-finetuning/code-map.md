@@ -24,8 +24,15 @@
 | examples/domain_predict.sh | 真实多模态样本调用演示 |
 | tools/review_description_samples.py | 限定533条描述的逐图复核、写回和证据检查 |
 | src/xiaomi_lens/description_v2/visual_review.py | 本地视觉推理、逐句复核、保守删句和范围核对 |
+| scripts/train_stable.sh | 本轮单版本多轮训练及恢复入口 |
+| tools/run_stable_finetuning.py | 独立运行目录、阶段检查、模型锁定及最终对照 |
+| tools/test_domain_stopping.py | 停止与恢复规则测试 |
+| src/xiaomi_lens/train/stopping.py | 明显进步计数、最低轮次及停止原因 |
+| src/xiaomi_lens/train/run_review.py | 每轮固定30条图文对照，初始标为未查看 |
 | tools/build_domain_review.py | 固定验证样本的图文审阅页 |
 | scripts/domain.sh | 使用 qwen3vl 与本项目代码启动命令 |
 
 `src/xiaomi_lens`中其他文件复制自原项目，保留原版权和中文注释。
 本项目只新增领域数据和训练流程，不宣称实现了外部基础模型的全部底层代码。
+
+本地页面与500条独立测试代码见[推理代码说明](../local-inference/implementation.md)。

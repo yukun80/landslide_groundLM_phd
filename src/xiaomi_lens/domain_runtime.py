@@ -18,7 +18,7 @@ from .description_checks import consistency_issues, answer_presence
 
 BASE = ROOT / "checkpoints/Xiaomi-Lens-0"
 CONFIG = json.loads((Path(__file__).parent / "train/configs/domain.json").read_text())
-PROMPT = "请识别最后一张光学遥感图片中的滑坡区域，用中文简短说明位置和面积比例，并输出区域标记。前面的图片如有则是同一区域的辅助观测。没有滑坡时请明确回答未检测到滑坡区域。不要推测灾害成因、风险或位移速度。"
+PROMPT = "请识别最后一张光学遥感图片中的滑坡区域，用中文简短说明位置、面积比例以及看得清的颜色、形状或纹理，并输出区域标记。前面的图片如有则是同一区域的辅助观测，仅补充能可靠对应目标或邻近区域的局部差异；看不清时不要推测。没有滑坡时请明确回答未检测到滑坡区域。不要推测灾害成因、风险、活动性或位移速度，不把亮度直接解释为形变大小。"
 
 
 def seed_all(seed=CONFIG["seed"]):
@@ -112,13 +112,13 @@ def images_for(row, rgb_only=False):
     return images
 
 
-def build(processor, row, rgb_only=False, training=False):
+def build(processor, row, rgb_only=False, training=False, prompt=None):
     images = images_for(row, rgb_only)
     messages = [
         {
             "role": "user",
             "content": [{"type": "image", "image": im} for im in images]
-            + [{"type": "text", "text": PROMPT}],
+            + [{"type": "text", "text": PROMPT if prompt is None else prompt}],
         }
     ]
     prefix = processor.apply_chat_template(
@@ -215,14 +215,14 @@ def save_checkpoint(path, model, optimizer, epoch, step, rgb_only, extra=None):
 
 @torch.inference_mode()
 @torch.autocast("cuda", dtype=torch.bfloat16)
-def predict(model, processor, row, outdir, rgb_only=False, max_tokens=None):
+def predict(model, processor, row, outdir, rgb_only=False, max_tokens=None, prompt=None):
     """自由生成后只解码回答里的区域标记；不借用标准答案或真实区域。"""
     max_tokens = CONFIG["maximum_answer_tokens"] if max_tokens is None else max_tokens
     outdir = Path(outdir)
     outdir.mkdir(parents=True, exist_ok=True)
     model.eval()
     t = time.monotonic()
-    inputs = build(processor, row, rgb_only)
+    inputs = build(processor, row, rgb_only, prompt=prompt)
     ids = model.generate(
         **inputs, max_new_tokens=max_tokens, do_sample=False, use_cache=True
     )
