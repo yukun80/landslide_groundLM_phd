@@ -15,3 +15,6 @@ einops==0.8.1
 
 # 本地推理页面；qwen3vl 已有此版本。
 gradio==6.20.0
+# 彩色TIF与地理坐标；沿用qwen3vl已有版本。
+rasterio==1.4.4
+shapely==2.1.2

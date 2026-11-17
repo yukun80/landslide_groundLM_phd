@@ -1,7 +1,7 @@
 # 三来源真实新旧描述对照
 
 > 本页保留先前工作记录；当前范围与写法见[533条复核](revision-2026-11-12.md)。
-[返回描述改进 v2 入口](README.md) · [规则与辅助图口径](rules.md) · [训练读取](training.md) · [检查结论](checks.md)
+[返回描述改进 v2 入口](README.md) · [规则与辅助图口径](rules.md) · [训练读取](training.md) · [检查结论](revision-results.md)
 
 以下 3 条均取自 `records.jsonl` 的最终 `verified` 记录，未按示意改写。`原答案` 是由 `mask/valid` 像素统计生成的模板句；两版答案的数值句与 `<bbox>...</bbox><|mask|>` 后缀与原答案逐字一致。
 

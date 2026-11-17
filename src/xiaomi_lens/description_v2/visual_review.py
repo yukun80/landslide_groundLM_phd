@@ -108,13 +108,15 @@ def parse_json(text):
     return obj
 
 
-def generate_many(model, processor, requests):
+def generate_many(model, processor, requests, max_new_tokens=210):
     """分批计算但每条样本独立输入、独立输出，不拼接成复核图。"""
     import torch
     texts, images, identities, counts, guides = [], [], [], [], []
     chinese = {'optical_raw':'无覆盖光学原图', 'label':'白色为目标的二值标注',
                'label_overlay':'品红仅用于定位的叠加对照', 'optical_at_model_size':'模型输入尺寸光学图',
-               'target_original_pixels':'仅保留目标原始颜色像素的核对图，目标外中灰只是占位背景，不是地表'}
+               'target_original_pixels':'仅保留目标原始颜色像素的核对图，目标外中灰只是占位背景，不是地表',
+               'focus_optical':'模型接收尺寸中最大可见目标的局部光学图，仅用于看清目标本身',
+               'focus_label':'上一张局部图对应的白色目标，黑色不是目标'}
     for paths, prompt in requests:
         local_images, identity = [], []
         for role, path in paths:
@@ -144,7 +146,7 @@ def generate_many(model, processor, requests):
     processor.tokenizer.padding_side='left'
     batch=processor(text=texts,images=images,padding=True,return_tensors='pt',add_special_tokens=False).to('cuda')
     with torch.inference_mode(),torch.autocast('cuda',dtype=torch.bfloat16):
-        output=model.generate(**batch,max_new_tokens=210,do_sample=False)
+        output=model.generate(**batch,max_new_tokens=max_new_tokens,do_sample=False)
     results=[];cursor=0
     for index,identity in enumerate(identities):
         text=processor.decode(output[index,batch.input_ids.shape[1]:],skip_special_tokens=True)
@@ -157,6 +159,7 @@ def generate_many(model, processor, requests):
         except (ValueError,json.JSONDecodeError):
             obj=None
         results.append({'raw':text,'parsed':obj,'images':identity,
+                        'max_new_tokens':max_new_tokens,
                         'input_tokens':int(batch.attention_mask[index].sum()),'pixel_reference':guides[index],'completed_at':now()})
     return results
 
@@ -209,8 +212,8 @@ def result_path(rid):
     return RUN / 'samples' / f'{rid}.json'
 
 
-def review_one(model, processor, row, manifest, draft=None, verified=None):
-    paths = paths_for(row)
+def review_one(model, processor, row, manifest, draft=None, verified=None, paths=None, computed_parts=None):
+    paths = paths if paths is not None else paths_for(row)
     draft = draft if draft is not None else generate(model, processor, paths, DRAFT)
     opt = sentences(draft['parsed'], 'optical_sentences', 2)
     aux = sentences(draft['parsed'], 'aux_sentences', 1) if len(row['images']) > 1 else []
@@ -242,7 +245,7 @@ def review_one(model, processor, row, manifest, draft=None, verified=None):
                 rejected.append({'kind': kind, 'sentence': s, 'reason': 'target brightness contradicts white appearance'})
     optical = [s for s, k in zip(opt, ko) if k]
     auxiliary = [s for s, k in zip(aux, ka) if k]
-    numeric, suffix = answer.answer_parts(row)
+    numeric, suffix = computed_parts if computed_parts is not None else answer.answer_parts(row)
     # 不确定时删句；不自动补成通用形容句。先删除辅助句，再删除最长光学句，防止截断。
     while True:
         errors, o, m = answer.check_new_text(numeric, suffix, optical, auxiliary, len(row['images']) > 1)
@@ -458,35 +461,41 @@ def apply_review():
     print(json.dumps(stats,ensure_ascii=False),flush=True)
 
 
+def conservative_sentences(row,opt,aux):
+    """共享的外观/模态保守筛选；只删除不能确认的句子，不制造新事实。"""
+    extra=re.compile(r'隆起|塌陷|厚度|纹理模糊|无清晰|无浅色裸土|目标(?:位于|在)(?:图像|图片).{0,3}(?:左|右|上|下)')
+    rejected=[];bad=color_guard(row,opt)
+    clean=[]
+    for i,s in enumerate(opt):
+        if i in bad or BANNED.search(s) or extra.search(s) or re.search(r'形变|变形',s):
+            rejected.append({'kind':'optical','sentence':s,'reason':'conservative target appearance or uncertainty guard'})
+        else:clean.append(s)
+    opt=clean;clean=[]
+    for s in aux:
+        source_ok=('假彩' in s and 'InSAR' not in s and 'DEM' not in s) if row['source']=='landslide4sense' else ('InSAR' in s or 'DEM' in s)
+        relation_ok=bool(re.search(r'上|下|左|右|边缘|内部|中央|中部|内侧|外侧|条|带|斑|块|片|连片',s))
+        # 疑似形变线索只允许明确来自InSAR，不能来自假彩或DEM明暗。
+        deformation_ok=('形变' not in s and '变形' not in s) or (
+            'InSAR' in s and row['source']=='multimodal-landslide-dataset'
+            and '疑似' in s and '线索' in s
+            and not re.search(r'较强|较弱|强烈|剧烈|强形变|弱形变',s))
+        if BANNED.search(s) or extra.search(s) or not source_ok or not relation_ok or not deformation_ok:
+            rejected.append({'kind':'auxiliary','sentence':s,'reason':'modality or specific spatial evidence not established'})
+        else:clean.append(s)
+    aux=clean
+    return opt,aux,rejected
+
+
 def polish_completed():
     """对已看图结果追加保守拦截，只删句，不凭统计值或模板制造新外观。"""
     rows={r['id']:r for _,r in io.read_rows()}
-    extra=re.compile(r'隆起|塌陷|厚度|纹理模糊|无清晰|无浅色裸土|目标(?:位于|在)(?:图像|图片).{0,3}(?:左|右|上|下)')
     for rid,result in completed().items():
         if result.get('codex_spot_review'):
             continue
         row=rows[rid]
         old=copy.deepcopy(result['after'])
         opt=list(result['optical_sentences']); aux=list(result['aux_sentences'])
-        rejected=[];bad=color_guard(row,opt)
-        clean=[]
-        for i,s in enumerate(opt):
-            if i in bad or BANNED.search(s) or extra.search(s) or re.search(r'形变|变形',s):
-                rejected.append({'kind':'optical','sentence':s,'reason':'conservative target appearance or uncertainty guard'})
-            else:clean.append(s)
-        opt=clean;clean=[]
-        for s in aux:
-            source_ok=('假彩' in s and 'InSAR' not in s and 'DEM' not in s) if row['source']=='landslide4sense' else ('InSAR' in s or 'DEM' in s)
-            relation_ok=bool(re.search(r'上|下|左|右|边缘|内部|中央|中部|内侧|外侧|条|带|斑|块|片|连片',s))
-            # 疑似形变线索只允许明确来自InSAR，不能来自假彩或DEM明暗。
-            deformation_ok=('形变' not in s and '变形' not in s) or (
-                'InSAR' in s and row['source']=='multimodal-landslide-dataset'
-                and '疑似' in s and '线索' in s
-                and not re.search(r'较强|较弱|强烈|剧烈|强形变|弱形变',s))
-            if BANNED.search(s) or extra.search(s) or not source_ok or not relation_ok or not deformation_ok:
-                rejected.append({'kind':'auxiliary','sentence':s,'reason':'modality or specific spatial evidence not established'})
-            else:clean.append(s)
-        aux=clean
+        opt,aux,rejected=conservative_sentences(row,opt,aux)
         numeric,suffix=answer.answer_parts(row)
         errs,optical,multi=answer.check_new_text(numeric,suffix,opt,aux,len(row['images'])>1)
         assert not errs,(rid,errs)

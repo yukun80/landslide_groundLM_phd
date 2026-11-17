@@ -1,7 +1,7 @@
 # 范围与实施流程
 
 > 本页保留先前工作记录；当前范围与写法见[533条复核](revision-2026-11-12.md)。
-[返回描述改进 v2 入口](README.md) · [规则与辅助图口径](rules.md) · [检查结论](checks.md)
+[返回描述改进 v2 入口](README.md) · [规则与辅助图口径](rules.md) · [检查结论](revision-results.md)
 
 ## 一、范围
 

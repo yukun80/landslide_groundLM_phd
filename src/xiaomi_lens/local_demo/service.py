@@ -24,11 +24,19 @@ def digest(path):
   for b in iter(lambda:f.read(8*1024*1024),b''):h.update(b)
  return h.hexdigest()
 
+_verified_model=None
+
 def verify_model():
+ global _verified_model
  record=json.loads(LOCK.read_text())
+ files=[CHECKPOINT,LOCK]+[BASE/name for name in record['base_model']]
+ signature=tuple((str(p),p.stat().st_size,p.stat().st_mtime_ns,p.stat().st_ctime_ns,p.stat().st_ino) for p in files)
+ if _verified_model and _verified_model[0]==signature:return dict(_verified_model[1])
  assert digest(CHECKPOINT)==record['models']['multiview']['sha256']
  for name,expected in record['base_model'].items():assert digest(BASE/name)==expected,name
- return {'checkpoint_sha256':record['models']['multiview']['sha256'],'base_files_checked':len(record['base_model']),'best_epoch_number':record['training_completion']['stopping']['best_epoch']+1}
+ result={'checkpoint_sha256':record['models']['multiview']['sha256'],'base_files_checked':len(record['base_model']),'best_epoch_number':record['training_completion']['stopping']['best_epoch']+1}
+ _verified_model=(signature,result)
+ return dict(result)
 
 def validate():
  manifest=json.loads((DATA/'manifest.json').read_text());rows=jsonlines(DATA/'samples.jsonl')

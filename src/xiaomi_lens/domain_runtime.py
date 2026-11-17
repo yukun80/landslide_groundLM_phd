@@ -9,10 +9,9 @@ import numpy as np
 import torch
 from PIL import Image
 from transformers import AutoProcessor
-from .model.modeling_xiaomi_lens import (
-    XiaomiLensQwen3_5ForConditionalGeneration,
-    MASK_CANVAS_SCALE,
-)
+# 图片/训练格式检查不需要导入模型及其加速组件，避免它们初始化显卡。
+# 官方区域分支恢复倍数为16；真正加载模型时再次核对，防止两处发生偏差。
+MASK_CANVAS_SCALE = 16
 from .train.data.domain import ROOT, describe, write_json
 from .description_checks import consistency_issues, answer_presence
 
@@ -66,6 +65,9 @@ def configure_processor(processor):
 
 
 def load(checkpoint=None, training=False):
+    from .model.modeling_xiaomi_lens import XiaomiLensQwen3_5ForConditionalGeneration
+    from .model.modeling_xiaomi_lens import MASK_CANVAS_SCALE as official_scale
+    assert MASK_CANVAS_SCALE == official_scale
     processor = configure_processor(
         AutoProcessor.from_pretrained(BASE, local_files_only=True, use_fast=False)
     )
@@ -112,7 +114,7 @@ def images_for(row, rgb_only=False):
     return images
 
 
-def build(processor, row, rgb_only=False, training=False, prompt=None):
+def build(processor, row, rgb_only=False, training=False, prompt=None, device="cuda"):
     images = images_for(row, rgb_only)
     messages = [
         {
@@ -187,7 +189,7 @@ def build(processor, row, rgb_only=False, training=False, prompt=None):
                 mask_pixel_valid=torch.tensor(v[None, None], dtype=torch.bool),
             )
     return {
-        k: v.to("cuda") if isinstance(v, torch.Tensor) else v for k, v in batch.items()
+        k: v.to(device) if isinstance(v, torch.Tensor) else v for k, v in batch.items()
     }
 
 
@@ -214,8 +216,13 @@ def save_checkpoint(path, model, optimizer, epoch, step, rgb_only, extra=None):
 
 
 @torch.inference_mode()
-@torch.autocast("cuda", dtype=torch.bfloat16)
 def predict(model, processor, row, outdir, rgb_only=False, max_tokens=None, prompt=None):
+    """只在实际预测时进入显卡环境，CPU图片检查导入本文件不会占用显卡。"""
+    with torch.autocast("cuda", dtype=torch.bfloat16):
+        return _predict_impl(model, processor, row, outdir, rgb_only, max_tokens, prompt)
+
+
+def _predict_impl(model, processor, row, outdir, rgb_only=False, max_tokens=None, prompt=None):
     """自由生成后只解码回答里的区域标记；不借用标准答案或真实区域。"""
     max_tokens = CONFIG["maximum_answer_tokens"] if max_tokens is None else max_tokens
     outdir = Path(outdir)

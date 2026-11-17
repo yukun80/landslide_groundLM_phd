@@ -8,17 +8,23 @@ from xiaomi_lens.train.data.domain import DEST, ROOT, jsonlines
 
 p = argparse.ArgumentParser()
 p.add_argument("--checkpoint")
+p.add_argument("--dataset-dir", type=Path, default=DEST)
 p.add_argument("--split", choices=["val", "test"], default="val")
 p.add_argument("--rgb-only", action="store_true")
 p.add_argument("--output", required=True)
 p.add_argument("--lock", default="outputs/final-models-locked.json")
 a = p.parse_args()
+dataset_dir = a.dataset_dir.resolve()
+if (dataset_dir / "build.json").exists():
+    summary_path = dataset_dir / "summary.json"
+    if not summary_path.exists() or not json.loads(summary_path.read_text()).get("complete", False):
+        raise ValueError("全量数据尚未完成文字与检查，禁止用于评估")
 if a.split == "test" and not (ROOT / a.lock).exists():
     raise RuntimeError("先完成正式训练并锁定最终模型，不能提前查看最终评估")
 if a.split == "test":
     lock = json.loads((ROOT / a.lock).read_text())
     if (
-        hashlib.sha256((DEST / "test.jsonl").read_bytes()).hexdigest()
+        hashlib.sha256((dataset_dir / "test.jsonl").read_bytes()).hexdigest()
         != lock["test_sha256"]
     ):
         raise RuntimeError("test split changed")
@@ -32,4 +38,4 @@ if a.split == "test":
             raise RuntimeError("模型与锁定记录不一致")
 seed_all()
 m, processor = load(a.checkpoint)
-evaluate(m, processor, jsonlines(DEST / f"{a.split}.jsonl"), a.output, a.rgb_only)
+evaluate(m, processor, jsonlines(dataset_dir / f"{a.split}.jsonl"), a.output, a.rgb_only)

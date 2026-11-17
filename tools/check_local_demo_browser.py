@@ -1,10 +1,15 @@
 """用真实浏览器检查本地页面；--live在批量结束后执行真实推理和重复点击。"""
-import argparse,json,zipfile,time
+import argparse,json,zipfile,time,shutil
 from pathlib import Path
 from playwright.sync_api import sync_playwright,expect
 ROOT=Path(__file__).resolve().parents[1];OUT=ROOT/'outputs/benchmark500/ui-check'
 def main():
- p=argparse.ArgumentParser();p.add_argument('--live',action='store_true');args=p.parse_args()
+ global OUT
+ p=argparse.ArgumentParser();p.add_argument('--live',action='store_true');p.add_argument('--output-dir');args=p.parse_args()
+ if args.output_dir:
+  OUT=ROOT/args.output_dir
+  OUT.mkdir(parents=True,exist_ok=True)
+  shutil.copyfile(ROOT/'outputs/benchmark500/ui-check/small.png',OUT/'small.png')
  rows=[json.loads(l) for l in (ROOT/'datasets/landslide_benchmark_500/samples.jsonl').open()];r=rows[0];checks={}
  OUT.mkdir(parents=True,exist_ok=True)
  with sync_playwright() as pw:
@@ -34,14 +39,14 @@ def main():
    page.screenshot(path=str(OUT/'inference.png'),full_page=True)
   page.get_by_role('tab',name='上传测试',exact=True).click()
   page.locator('#upload-optical input[type=file]').set_input_files(str(ROOT/r['images'][-1]));page.wait_for_timeout(1000)
-  page.get_by_label('光学＋近红外/短波红外',exact=True).check()
+  page.locator('[role=tabpanel]:visible').get_by_label('光学＋近红外/短波红外',exact=True).check()
   page.locator('#upload-aux1 input[type=file]').set_input_files(str(OUT/'small.png'));page.wait_for_timeout(1000)
   page.get_by_role('button',name='预测上传图片',exact=True).click();page.get_by_text('辅助图片必须与光学图片尺寸相同，并由你确认已对齐。',exact=True).wait_for(timeout=10000);checks['wrong_size_rejected']=True
   if args.live:
    # 使用新页面清空上传状态，核验多模态三图实际推理。
    page.reload(wait_until='domcontentloaded');page.get_by_role('tab',name='上传测试',exact=True).click()
    m=next(x for x in rows if x['source']=='multimodal-landslide-dataset')
-   page.get_by_label('光学＋InSAR＋高程',exact=True).check()
+   page.locator('[role=tabpanel]:visible').get_by_label('光学＋InSAR＋高程',exact=True).check()
    for elem,path in zip(['upload-optical','upload-aux1','upload-aux2'],[m['images'][-1],m['images'][0],m['images'][1]]):
     page.locator(f'#{elem} input[type=file]').set_input_files(str(ROOT/path));page.wait_for_timeout(700)
    page.get_by_role('button',name='预测上传图片',exact=True).click()

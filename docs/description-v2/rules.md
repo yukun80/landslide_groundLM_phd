@@ -1,7 +1,7 @@
 # 描述规则与辅助图口径
 
 > 本页保留先前工作记录；当前范围与写法见[533条复核](revision-2026-11-12.md)。
-[返回描述改进 v2 入口](README.md) · [实施流程](workflow.md) · [新旧对照](examples.md) · [检查结论](checks.md)
+[返回描述改进 v2 入口](README.md) · [实施流程](workflow.md) · [新旧对照](examples.md) · [检查结论](revision-results.md)
 
 规则已冻结：`description_v2/rules.json` 的 `status=frozen`，`state.json` 的 `rules_frozen=true`、`pilot_confirmed=true`；权威常量在 `src/xiaomi_lens/description_v2/spec.py`。
 

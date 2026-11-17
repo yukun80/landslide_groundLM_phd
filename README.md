@@ -14,5 +14,6 @@
 
 - [模型准备、数据抽取、训练、预测与评估](docs/domain-finetuning/README.md)
 - [中文描述改进 v2：逐图复核、两版答案与检查结论](docs/description-v2/README.md)
+- [全量正样本制作与逐图文字](docs/domain-finetuning/full-dataset/README.md)
 
 - [500条独立样本与本地推理页面](docs/local-inference/README.md)

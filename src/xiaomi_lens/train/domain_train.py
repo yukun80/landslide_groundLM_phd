@@ -14,6 +14,7 @@ from .data.domain import DEST, ROOT, jsonlines, write_json, NAMES
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--output", required=True)
+    p.add_argument("--dataset-dir", type=Path, default=DEST, help="显式指定数据目录；默认保留原1000条")
     p.add_argument("--rgb-only", action="store_true")
     p.add_argument("--smoke", action="store_true")
     p.add_argument("--resume")
@@ -23,6 +24,11 @@ def main():
     a = p.parse_args()
     if a.epochs < 1 or (a.early_stop and a.epochs < 6):
         p.error("轮次不足；自动停止至少需要1轮区域训练和5轮联合训练")
+    dataset_dir = a.dataset_dir.resolve()
+    if (dataset_dir / "build.json").exists():
+        summary_path = dataset_dir / "summary.json"
+        if not summary_path.exists() or not json.loads(summary_path.read_text()).get("complete", False):
+            raise ValueError("全量数据尚未完成文字与检查，禁止启动训练")
     seed_all(CONFIG["seed"])
     folder = Path(a.output)
     folder.mkdir(parents=True, exist_ok=True)
@@ -30,8 +36,8 @@ def main():
         if not a.restart_incomplete or (folder / "last.pt").exists():
             raise RuntimeError("已有训练记录；请用 --resume 恢复，或指定新的输出目录")
         (folder / "train.jsonl").rename(folder / f"train-interrupted-{time.time_ns()}.jsonl")
-    rows = jsonlines(DEST / "train.jsonl")
-    val = jsonlines(DEST / "val.jsonl")
+    rows = jsonlines(dataset_dir / "train.jsonl")
+    val = jsonlines(dataset_dir / "val.jsonl")
     if a.smoke:
         rows = [
             r
@@ -42,11 +48,13 @@ def main():
     if not all(r["positive_pixels"] > 0 for r in rows + val):
         raise ValueError("当前方案仅允许有有效目标的样本")
     contract = {
-        "dataset": {s: hashlib.sha256((DEST / f"{s}.jsonl").read_bytes()).hexdigest()
+        "dataset": {s: hashlib.sha256((dataset_dir / f"{s}.jsonl").read_bytes()).hexdigest()
                     for s in ("train", "val", "test")},
         "settings": CONFIG, "prompt": PROMPT, "rgb_only": a.rgb_only,
         "smoke": a.smoke, "early_stop": a.early_stop,
     }
+    if dataset_dir != DEST.resolve():
+        contract["dataset_dir"] = str(dataset_dir)
     contract_path = folder / "contract.json"
     if contract_path.exists() and json.loads(contract_path.read_text()) != contract:
         raise ValueError("训练数据、提问或设置发生变化，禁止混合恢复")
@@ -102,7 +110,7 @@ def main():
             "trainable_parameters": sum(
                 p.numel() for p in model.parameters() if p.requires_grad
             ),
-            "source_dataset": json.loads((DEST / "summary.json").read_text()),
+            "source_dataset": json.loads((dataset_dir / "summary.json").read_text()),
         },
     )
     torch.cuda.reset_peak_memory_stats()

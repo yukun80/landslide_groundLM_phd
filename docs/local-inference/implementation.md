@@ -14,6 +14,13 @@
 |tools/build_benchmark_review.py|固定每来源10条图文对照页|
 |src/xiaomi_lens/local_demo/service.py|模型复用、结果保存、评分、打包|
 |src/xiaomi_lens/local_demo/app.py|样本浏览、上传与批量结果界面|
+|src/xiaomi_lens/local_demo/boxes.py|解析模型框，新增展示与坐标包，不覆盖历史结果|
+|src/xiaomi_lens/local_demo/geoio.py|彩色TIF窗口读取、有效区、四角与日期线转换|
+|src/xiaomi_lens/local_demo/geojob.py|固定任务、停止恢复、分块拼接和地理下载|
+|src/xiaomi_lens/local_demo/geopage.py|TIF预览、进度、逐块回答、地理坐标页面|
+|tools/prepare_localization_views.py|为历史500条新增定位展示，不调用模型|
+|tools/check_geospatial_browser.py|定位开关、TIF真实运行、停止继续和下载的浏览器检查|
+|tools/check_geospatial_demo.py|已知坐标、边缘、停止重试检查与真实TIF预测|
 |scripts/start_demo.sh|使用qwen3vl启动本地页面|
 
 共享domain_runtime中的build和predict新增可选prompt；未传入时行为保持不变。
@@ -42,3 +49,11 @@
 模型来源固定为outputs/finetune-20261115/multiview/best.pt，内容必须符合锁定记录。
 服务只监听127.0.0.1:7860，单个模型请求串行执行；批量程序设进程锁。
 批量失败后继续记录其他样本，最终非零退出；交互错误直接在页面提示。
+
+TIF任务存于outputs/benchmark500/geospatial，独立于500条固定预测。
+窗口数据按需读取；整图分割写盘，网页预览最长边1536，不把预览坐标作为原图坐标。
+定位框接口新增valid/raw/pixel_xyxy及地理四角；旧result.json不改变。
+新任务保存输入摘要、问题、模型摘要和分块规则，恢复时逐项核验。
+模型文件首次使用核对完整内容；同进程中文件大小、修改时间、变更时间或文件身份改变会重新核对。
+
+浏览器回归检查可用--output-dir指定本次证据目录，避免覆盖历史页面检查记录。

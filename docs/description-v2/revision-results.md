@@ -1,8 +1,8 @@
-# 533条描述修订结果
+# 描述修订结果与历史依据
 
 [返回说明入口](README.md) · [过程与口径](revision-2026-11-12.md)
 
-本轮已经完成写回与实际检查；结果属于模型复核，未经人工逐图确认。
+以下533条复核属于2026-11-12阶段的历史结果，已经完成写回与实际检查；结果属于模型复核，未经人工逐图确认。
 
 ## 完成数量
 
@@ -59,4 +59,39 @@
 InSAR仅描述相对显示、局部形态与目标内外关系；不输出确定活动性或形变大小。
 异常线索不是已经证实的地表运动；单位换算猜测未进入训练答案。
 同一视觉模型两遍核对可能存在共同误判，仍需人工专家确认外观事实。
-未启动正式训练和独立评估，不声称模型效果改善。
+上述描述修订阶段未启动正式训练和独立评估，不声称模型效果改善；后续训练见[训练记录](../domain-finetuning/current-run.md)。
+
+## 2026-11-09：初版检查（历史，不是当前结论）
+
+| 检查 | 命令 / 产物 | 结果 |
+| --- | --- | --- |
+| 原答案与掩膜核验（阶段 B） | `desc_v2.py verify` → `originals_verified.json` | 1000 条逐字一致，位置/bbox/面积与像素计算一致 |
+| 辅助图规格 | `desc_v2.py aux-spec` → `aux_spec_verified.json` | 三来源视图数、波段、显示范围核实；单位未确认 |
+| 试点三轮 | `desc_v2.py pilot-review` → `pilot_review.md` | 12 条 `verified` / 0 `failed` |
+| 逐批闸门 | `desc_v2_batch.py check --batch 0..9` | 10 批各 100 条全部 `verified`，134 张拼图无缺失 |
+| 全量静态检查 | `check_desc_v2.py --scope full` → `checks.json` | **24 通过 / 0 失败**（`apply` 前后各跑一次） |
+| 文档短文与入口 | `check_desc_v2_docs.py` | 6 篇短文，行数上限、本地链接、两个 README 入口通过 |
+| 工具语法 | `python -m py_compile` × 5 | 通过 |
+| 覆盖二次断言 | `desc_v2.py apply` → `apply_report.json` | train 800 / val 100 / test 100 原子覆盖；新旧字节哈希已记录 |
+| 覆盖后复核 | 逐行比对三份 jsonl | 1000 条 id 唯一、17 字段顺序一致、`answer`/`answer_optical` 与 `records` 一致、非答案字段指纹全一致 |
+| loader 数据冒烟 | `smoke_desc_v2_loader.py --mode data` → `loader_smoke.json` | **1000 行 PASS / 0 错**（用 `domain.py` 权威 `training_answer()` 复核数值句与后缀） |
+
+
+当时只完成数据读取检查，未执行真实文字编码检查；后续编码结果见上文，不能倒填为当时通过。
+当时533条新增描述、320条两版不同；格式通过不能证明外观正确。
+唯一活动性判别缺少物理单位换算依据，后来撤销，不作为当前规则。
+逐样本原答案、观察、不确定项仍在 `datasets/landslide_lens_positive_v1/description_v2/records.jsonl`；
+原始拼图及映射仍在该目录的 `sheets/`，初版对照见[历史样例](examples.md)。
+
+## 2026-11：早期修订试跑（已被后续流程替代）
+
+当时只完成9条（5条流程验证、4条分批验证），991条未查看，尚未写回；不与后来533条复核混算。
+当时8项工具修复检查通过，但编码检查未运行，全量检查因未完成而失败。
+问题包括邻区外观错配、无依据活动性判断、把图像处理痕迹当作地表特征，以及缺记录自动标为已查看。
+- `multimodal_landslide_xiz_005573`：将邻近浅色条带误当目标；实际目标为深褐色横带，后续答案见上文。
+- `multimodal_landslide_xiz_001834`：删除无依据的活动性判别；历史授权与不确定性仍保留在原记录。
+- `multimodal_landslide_sic_003370`：将右侧浅色区域错配给左缘目标；早期修订为左缘深色楔形区。
+
+早期记录仍保存在同一数据目录的 `snapshots/`、`obs/roundNNN_views.jsonl`、`revisions.jsonl` 和 `view_progress.json`。
+当时 `records.jsonl` 前2036行为历史、追加后2045行；这是当时数量，不是当前进度。
+初版规则、逐条前后答案和原始模型返回不因文档合并而删除。

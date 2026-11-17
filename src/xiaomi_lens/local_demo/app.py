@@ -5,6 +5,8 @@ from pathlib import Path
 import gradio as gr
 from PIL import Image
 from .service import ROOT,DATA,OUT,SERVICE,PROMPT,bundle
+from .boxes import presentation,view_path
+from .geopage import add_page,box_text
 from ..train.data.domain import jsonlines,NAMES
 
 def result_notes(result, interactive=False):
@@ -43,11 +45,14 @@ def make_app():
  def display(key):
   r=byid[key];folder=OUT/'batch'/key
   result=json.loads((folder/'result.json').read_text()) if (folder/'result.json').exists() else None
+  vf=OUT/'localization'/key
+  if result and not (vf/'boxes.json').exists():presentation(ROOT/r['images'][-1],folder,vf)
+  coordinates=box_text(json.loads((vf/'boxes.json').read_text())) if result else ''
   return (str(ROOT/r['images'][-1]),[str(ROOT/p) for p in r['images'][:-1]],str(ROOT/r['mask']),
    str(folder/'overlay.png') if result else None,str(folder/'mask.png') if result else None,
    result['answer'] if result else '尚无批量结果，可点击推理。',result['derived_description'] if result else '',
    result_notes(result) if result else '',
-   str(folder/'result.zip') if (folder/'result.zip').exists() else None)
+   str(folder/'result.zip') if (folder/'result.zip').exists() else None,str(vf) if result else '',coordinates,str(vf/'localization.zip') if result else None)
  def check_batch():
   status=OUT/'status.json';pidfile=OUT/'batch-process.json'
   if status.exists() and pidfile.exists() and json.loads(status.read_text()).get('state')=='running':
@@ -62,7 +67,8 @@ def make_app():
   check_batch()
   folder=OUT/'interactive'/uuid.uuid4().hex
   result=SERVICE.run(byid[key],folder,prompt)
-  return remember(signature,(str(folder/'overlay.png'),str(folder/'mask.png'),result['answer'],result['derived_description'],result_notes(result,True),bundle(folder)))
+  vf=folder/'localization';coords=presentation(ROOT/byid[key]['images'][-1],folder,vf)
+  return remember(signature,(str(folder/'overlay.png'),str(folder/'mask.png'),result['answer'],result['derived_description'],result_notes(result,True),bundle(folder),str(vf),box_text(coords),str(vf/'localization.zip')))
  def upload(optical,mode,aux1,aux2,prompt,request:gr.Request):
   if not optical:raise gr.Error('请上传光学图片。')
   if not prompt.strip():raise gr.Error('请填写问题。')
@@ -90,7 +96,8 @@ def make_app():
    with Image.open(p) as im:im.convert('RGB').save(dest)
    copied.append(str(dest))
   result=SERVICE.run({'id':'upload','images':copied},folder,prompt)
-  return remember(signature,(str(folder/'overlay.png'),str(folder/'mask.png'),result['answer'],result['derived_description'],result_notes(result,True),bundle(folder)))
+  vf=folder/'localization';coords=presentation(copied[-1],folder,vf)
+  return remember(signature,(str(folder/'overlay.png'),str(folder/'mask.png'),result['answer'],result['derived_description'],result_notes(result,True),bundle(folder),str(vf),box_text(coords),str(vf/'localization.zip')))
  def batch_results():
   summary=json.loads((OUT/'summary.json').read_text()) if (OUT/'summary.json').exists() else {}
   records=json.loads((OUT/'results.json').read_text()) if (OUT/'results.json').exists() else []
@@ -115,20 +122,27 @@ def make_app():
     with gr.Column():
      overlay=gr.Image(label='预测叠加图',interactive=False);mask=gr.Image(label='预测区域',interactive=False)
      answer=gr.Textbox(label='模型原始回答',lines=5);derived=gr.Textbox(label='按预测区域计算的说明');score=gr.Textbox(label='本次结果');download=gr.File(label='下载回答与图片')
-   outputs=[optical,aux,truth,overlay,mask,answer,derived,score,download]
+   vf=gr.State('');sm=gr.Checkbox(value=True,label='显示分割区域');sb=gr.Checkbox(value=True,label='显示定位框')
+   coords=gr.Textbox(label='定位框原图位置',lines=4);boxdl=gr.File(label='下载定位框与图片')
+   for change in [vf,sm,sb]:change.change(view_path,[vf,sm,sb],[overlay])
+   outputs=[optical,aux,truth,overlay,mask,answer,derived,score,download,vf,coords,boxdl]
    source.change(choose,[source],[key]);key.change(display,[key],outputs)
    prev.click(lambda s,k:move(s,k,-1),[source,key],[key]);nxt.click(lambda s,k:move(s,k,1),[source,key],[key])
-   run.click(infer_sample,[key,prompt],[overlay,mask,answer,derived,score,download],concurrency_limit=1,concurrency_id='model',trigger_mode='once')
+   run.click(infer_sample,[key,prompt],[overlay,mask,answer,derived,score,download,vf,coords,boxdl],concurrency_limit=1,concurrency_id='model',trigger_mode='once')
    app.load(display,[key],outputs)
   with gr.Tab('上传测试'):
-   gr.Markdown('上传已制作好的显示图片。辅助图须与光学图同区域、同尺寸；程序不猜测原始遥感波段。')
+   gr.Markdown('TIF请使用旁边的“TIF整图与地理坐标”页面。上传已制作好的显示图片。辅助图须与光学图同区域、同尺寸；程序不猜测原始遥感波段。')
    mode=gr.Radio(['仅光学','光学＋近红外/短波红外','光学＋InSAR＋高程'],value='仅光学',label='输入类型')
    opt=gr.File(elem_id='upload-optical',label='光学图片',file_types=['.png','.jpg','.jpeg','.webp'])
    a1=gr.File(elem_id='upload-aux1',label='辅助图1：近红外/短波红外，或InSAR',file_types=['.png','.jpg','.jpeg','.webp'])
    a2=gr.File(elem_id='upload-aux2',label='辅助图2：高程',file_types=['.png','.jpg','.jpeg','.webp'])
    q=gr.Textbox(value=PROMPT,label='上传图片的问题',lines=4);button=gr.Button('预测上传图片',variant='primary')
    ov=gr.Image(label='上传预测叠加图');ma=gr.Image(label='上传预测区域');an=gr.Textbox(label='上传图片的回答');de=gr.Textbox(label='按上传预测区域计算');un=gr.Textbox(label='上传结果核对提示');dl=gr.File(label='下载上传结果')
-   button.click(upload,[opt,mode,a1,a2,q],[ov,ma,an,de,un,dl],concurrency_limit=1,concurrency_id='model',trigger_mode='once')
+   uvf=gr.State('');um=gr.Checkbox(value=True,label='上传显示分割区域');ub=gr.Checkbox(value=True,label='上传显示定位框')
+   uc=gr.Textbox(label='上传定位框原图位置');ud=gr.File(label='下载上传定位框')
+   for change in [uvf,um,ub]:change.change(view_path,[uvf,um,ub],[ov])
+   button.click(upload,[opt,mode,a1,a2,q],[ov,ma,an,de,un,dl,uvf,uc,ud],concurrency_limit=1,concurrency_id='model',trigger_mode='once')
+  add_page()
   with gr.Tab('批量结果'):
    refresh=gr.Button('刷新批量结果');summary=gr.HTML(label='分来源与总体成绩')
    table=gr.HTML(label='逐条结果')

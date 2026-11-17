@@ -5,7 +5,7 @@ from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
 fail = []
-for p in [*(root / "docs/domain-finetuning").glob("*.md"),
+for p in [*(root / "docs/domain-finetuning").rglob("*.md"),
           *(root / "docs/local-inference").glob("*.md"), root / "README.md", root / "docs/README.md"]:
     text = p.read_text()
     limit = 60 if p.name == "README.md" else 120
