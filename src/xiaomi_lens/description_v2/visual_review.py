@@ -108,7 +108,7 @@ def parse_json(text):
     return obj
 
 
-def generate_many(model, processor, requests, max_new_tokens=210):
+def generate_many(model, processor, requests, max_new_tokens=210, policy=None):
     """分批计算但每条样本独立输入、独立输出，不拼接成复核图。"""
     import torch
     texts, images, identities, counts, guides = [], [], [], [], []
@@ -116,7 +116,9 @@ def generate_many(model, processor, requests, max_new_tokens=210):
                'label_overlay':'品红仅用于定位的叠加对照', 'optical_at_model_size':'模型输入尺寸光学图',
                'target_original_pixels':'仅保留目标原始颜色像素的核对图，目标外中灰只是占位背景，不是地表',
                'focus_optical':'模型接收尺寸中最大可见目标的局部光学图，仅用于看清目标本身',
-               'focus_label':'上一张局部图对应的白色目标，黑色不是目标'}
+               'focus_label':'上一张局部图对应的白色目标，黑色不是目标',
+               'quality_target_crop':'目标原像素局部图，灰色是遮挡，不是地表颜色',
+               'quality_label_crop':'上一张局部图的白色目标，白色不是地表颜色'}
     for paths, prompt in requests:
         local_images, identity = [], []
         for role, path in paths:
@@ -140,7 +142,7 @@ def generate_many(model, processor, requests, max_new_tokens=210):
         guidance='原图目标像素的程序核对参考（不是新增观测）：'+json.dumps(guide,ensure_ascii=False)+'。这些统计仅用于避免把背景当目标，颜色仍须看原图；不得把统计数字写进答案。'
         guides.append(guide)
         msg=[{'role':'user','content':[{'type':'image','image':im} for im in local_images]+
-              [{'type':'text','text':POLICY+'\n'+labels+'\n'+guidance+'\n'+prompt}]}]
+              [{'type':'text','text':(POLICY if policy is None else policy)+'\n'+labels+'\n'+guidance+'\n'+prompt}]}]
         texts.append(processor.apply_chat_template(msg,tokenize=False,add_generation_prompt=True,enable_thinking=False))
         images.extend(local_images);identities.append(identity);counts.append(len(local_images))
     processor.tokenizer.padding_side='left'

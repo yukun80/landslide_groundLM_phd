@@ -36,10 +36,28 @@ def structural(dest,rows):
         assert all(r['decision']=='excluded_by_user_choice' for r in quality['samples'])
         assert not conflicts&set(now),'excluded all-black sample returned to the new data'
     assert ((set(old)|bench)-conflicts)<=set(now)
+    quality_baseline=None
+    if any(r.get('description_provider')=='quality_review' for r in rows):
+        from .quality_review import REVIEW, load
+        load(dest)
+        quality_baseline={e['id']:e for e in read_jsonl(dest/REVIEW/'baseline.jsonl')}
+    from .quality_review import merged_entries
+    adopted = merged_entries(dest)
     for rid,r in old.items():
         if rid not in now:assert rid in conflicts;continue
         assert now[rid]['split']==r['split'] and now[rid]['reuse_text']
-        for k in ('answer','answer_optical'):assert now[rid][k]==r[k]
+        if rid in adopted:
+            entry = adopted[rid]
+            assert entry['before'] == {k:r[k] for k in ('answer','answer_optical')}
+            assert all(entry[k] == now[rid][k] for k in ('answer','answer_optical'))
+        elif now[rid].get('description_provider')=='quality_review':
+            # Only the new dataset copy may adopt a separately reviewed answer.
+            # Original 1000-row files and all image/split protections stay intact.
+            assert quality_baseline[rid]['before']=={k:r[k] for k in ('answer','answer_optical')}
+            revised=json.loads((dest/REVIEW/'samples'/f'{rid}.json').read_text())
+            assert revised['after']=={k:now[rid][k] for k in ('answer','answer_optical')}
+        else:
+            for k in ('answer','answer_optical'):assert now[rid][k]==r[k]
         for key,paths in [('images',r['images']),('mask',[r['mask']]),('valid',[r['valid']])]:
             newpaths=now[rid][key] if key=='images' else [now[rid][key]]
             assert [sha256_file(ROOT/p) for p in newpaths]==[sha256_file(ROOT/p) for p in paths]
@@ -221,7 +239,9 @@ def final(dest):
             'old_data_and_original_code_unchanged':True,'human_confirmed':False,'formal_training_run':False,
             'annotation_provider':provider,'checked_at':time.strftime('%Y-%m-%dT%H:%M:%S'),'limitations':summary['limitations']}
     atomic_write_json(dest/'audit/final_check.json',report)
-    summary.update(complete=True,validation='audit/final_check.json');atomic_write_json(dest/'summary.json',summary)
+    summary.update(complete=True,validation='audit/final_check.json')
+    if (dest/'review/quality_review/manifest.json').exists():summary['quality_review']='complete'
+    atomic_write_json(dest/'summary.json',summary)
     build.update(complete=True);atomic_write_json(dest/'build.json',build)
     print('FINAL_PASS',report,flush=True)
 

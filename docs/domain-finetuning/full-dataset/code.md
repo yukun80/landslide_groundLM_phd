@@ -5,6 +5,8 @@
 新代码位于 [full_dataset](../../../src/xiaomi_lens/full_dataset/)。
 复用项目已有数据处理和文字规则，不修改 `Xiaomi-Lens-0-raw/`。
 
+追加文字质量复查见[代码说明](code-quality-review.md)。
+
 ## 按步骤查阅
 
 |专题|主要代码|职责|
@@ -20,3 +22,5 @@
 已有 [visual_review.py](../../../src/xiaomi_lens/description_v2/visual_review.py) 的核对函数允许显式传入图片与数值，
 共用原有保守删句规则；新流程不调用其写入旧复核目录的入口。
 原有文档检查增加下级目录遍历，覆盖这些短文。
+
+[全量定稿合并入口](../../../tools/merge_description_final.py)核对现用原文、按编号合并定稿，经两种图像输入读取后提供三份现用清单。使用说明见[本地操作](usage.md)。

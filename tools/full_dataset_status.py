@@ -30,7 +30,29 @@ def main():
                 '已复制并制作图片':copied,'已有文字保留':999,'Codex文字保留':27,
                 '全部完成':summary.get('complete',False),
                 '说明':'本地生成文字，不是微调；生成与再次核对不等于人工确认'}
+        merge = summary.get('description_merge')
+        if merge:
+            report['全量清单'] = {'总数':merge['total'], '采用修改':merge['changed'],
+                                '定稿保留原文':merge['reviewed_unchanged'],
+                                '文字待确认':merge['awaiting_review'], '实际读取':merge['actual_reads']}
         if state.exists(): report['本轮进度']=json.loads(state.read_text())
+        quality=dest/'review/quality_review'
+        if (quality/'manifest.json').exists():
+            qm=json.loads((quality/'manifest.json').read_text())
+            saved=sum(1 for p in (quality/'samples').glob('*.json'))
+            report['追加质量复查']={'需要复查':qm['required'],'已保存':saved,
+                '尚未保存':qm['required']-saved,'试跑放行':(quality/'pilot_approval.json').exists(),
+                '说明':'保存数量不是质量准确率；还需最终抽查与发布检查'}
+            if merge:
+                with (quality/'candidates.jsonl').open() as file:
+                    wanted = {json.loads(line)['id'] for line in file}
+                with (ROOT/'outputs/description-final/定稿.jsonl').open() as file:
+                    adopted = wanted.intersection(json.loads(line)['id'] for line in file)
+                saved_ids = {p.stem for p in (quality/'samples').glob('*.json')}
+                report['追加质量复查'].update(其中已采用定稿=len(adopted),
+                                       剩余未处理=len(wanted - saved_ids - adopted))
+                del report['追加质量复查']['尚未保存']
+            report['全部完成']=summary.get('complete',False) and summary.get('quality_review')=='complete'
         print(json.dumps(report,ensure_ascii=False,indent=2));return
     folder=dest/('review/codex_session/samples' if provider=='codex_session' else 'review/samples');described={p[:-5] for p in os.listdir(folder) if p.endswith('.json')} if folder.exists() else set()
     report={'当前看图方式':provider,'暂选样本':len(rows),'已确认复制并制作图片':copied,

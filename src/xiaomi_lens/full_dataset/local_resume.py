@@ -113,6 +113,9 @@ def read_phase(model, processor, group, paths, dest, auxiliary=False):
             failures.append({'id':row['id'],'phase':phase+'_draft','error':repr(error)})
     def verification_prompt(candidate,instruction=''):
         sentences=[(key,s) for key in ('optical_sentences','aux_sentences') for s in candidate[key]]
+        if not sentences:
+            return ('再次查看这些图片。本轮没有候选句，不判断图片数量，不补写描述。'
+                    '只输出完整JSON：{"keep_optical":[],"keep_aux":[],"reasons":["无候选句"]}。')
         if len(sentences)==1:
             return (EXTRA_POLICY+records.DETAIL_PROMPT+
                 '\n'+records.SINGLE_VERIFY+json.dumps(sentences[0][1],ensure_ascii=False)+instruction)
@@ -123,6 +126,8 @@ def read_phase(model, processor, group, paths, dest, auxiliary=False):
     for (row,ps,draft,candidate),check in zip(candidates,checks):
         for retry in range(3):
             check.setdefault('request_prompt',check.get('retry_request_prompt',verification_prompt(candidate)))
+            if not candidate['optical_sentences'] and not candidate['aux_sentences']:
+                check['verification_protocol']='explicit_empty_candidates_v1'
             save_attempt(dest,row['id'],phase+'_verification',check)
             try:
                 obj=check['parsed'];assert isinstance(obj,dict)
@@ -298,6 +303,8 @@ def revise_pilot(dest, submission):
 
 def publish(dest):
     """全部必修项完成才导出；每条答案附采用来源和记录摘要。"""
+    if (Path(dest)/'review/quality_review/manifest.json').exists():
+        raise RuntimeError('追加质量复查已启动，请用质量复查入口完成检查后发布，不能绕过待复查项')
     dest = Path(dest); m = records.load_manifest(dest); check_gate(dest, m, require_encoding=True)
     records.check_history(dest, m)
     assert records.progress(dest)['remaining'] == 0
@@ -329,6 +336,9 @@ def validate_all(dest, rows):
     """最终检查实际采用的每一种来源；不把历史核对冒充本轮重新看图。"""
     dest = Path(dest); m = records.load_manifest(dest); check_gate(dest, m)
     records.check_history(dest, m)
+    if (dest/'review/quality_review/manifest.json').exists():
+        from .quality_delivery import validate_final
+        return validate_final(dest,rows)
     from .resume_validation import validate_records
     return validate_records(dest, rows, m)
 

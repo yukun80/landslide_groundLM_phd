@@ -2,10 +2,12 @@
 
 [返回领域微调](../README.md) · [项目入口](../../../README.md)
 
-新数据位于 `datasets/landslide_lens_full_positive_v1/`，共18,987条。
+1,314 张定稿已合并，其中 1,174 张改写，12,392 张仍待确认。数据位于 `datasets/landslide_lens_full_positive_v1/`，共18,987条。
 2026-11-17按用户最新选择恢复**本地小米官方原始模型**生成文字，不启动微调。
 保留999条原有文字和27条Codex文字，检查其余14,185条本地结果，补齐缺少的3,776条。
 
+- [全量文字采用结果、逐图对照与待确认项](description-audit.md)
+- [文字质量追加复查](quality-review.md)：10条缺项处理、重复套话与无外观样本复查。
 - [数据范围、清洗与划分](data.md)
 - [逐图文字及其边界](descriptions.md)
 - [本地接续操作与继续处理](usage.md)

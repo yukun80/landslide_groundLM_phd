@@ -122,19 +122,19 @@ def recover_draft(model,processor,row,path,draft,dest):
             draft=generate_safely(model,processor,[(path,prompt)],384)[0]
 
 
-def generate_safely(model,processor,requests,max_new_tokens=210):
+def generate_safely(model,processor,requests,max_new_tokens=210,policy=None):
     """显存不足时缩小同批样本数，绝不删某个样本的辅助输入。"""
     import torch
     key=max(len(paths) for paths,prompt in requests);cap=_SAFE_CAP.get(key,len(requests))
     if len(requests)>cap:
-        return [result for i in range(0,len(requests),cap) for result in generate_safely(model,processor,requests[i:i+cap],max_new_tokens)]
-    try:return visual.generate_many(model,processor,requests,max_new_tokens=max_new_tokens)
+        return [result for i in range(0,len(requests),cap) for result in generate_safely(model,processor,requests[i:i+cap],max_new_tokens,policy)]
+    try:return visual.generate_many(model,processor,requests,max_new_tokens=max_new_tokens,policy=policy)
     except torch.OutOfMemoryError:
         if len(requests)==1:raise
     # 离开except后再重试，避免异常栈继续持有刚才失败批次的显存。
     import gc
     gc.collect();torch.cuda.empty_cache();middle=len(requests)//2;_SAFE_CAP[key]=middle
-    return generate_safely(model,processor,requests[:middle],max_new_tokens)+generate_safely(model,processor,requests[middle:],max_new_tokens)
+    return generate_safely(model,processor,requests[:middle],max_new_tokens,policy)+generate_safely(model,processor,requests[middle:],max_new_tokens,policy)
 
 
 def run(dest=DEFAULT,limit=0,follow=False,pilot=False):

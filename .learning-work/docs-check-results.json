@@ -1,9 +1,9 @@
 {
   "status": "passed",
   "backup_removed": true,
-  "document_pages": 113,
+  "document_pages": 116,
   "learning_pages": 73,
-  "local_links_checked": 603,
+  "local_links_checked": 622,
   "file_explanations": 120,
   "class_function_explanations": 280,
   "all_pages_reachable": true,
