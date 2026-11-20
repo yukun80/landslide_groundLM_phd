@@ -9,7 +9,7 @@
 
 在根目录运行 `scripts/full_dataset.sh tools/merge_description_final.py`。输入为全量准备清单、对应的原采用记录、逐图审查表和 1,314 张定稿。首次先在独立目录验证，再开放训练、验证和测试三个清单入口。再次运行会核对输入及现用清单，并复用同一批文字已通过的读取结果。
 
-`python tools/full_dataset_status.py` 同时显示已采用的修改数和全量待确认数。合并及清理明细在数据目录的 `review/merged_descriptions/`。待复查阶段不启动训练。需要全量复核时，按现用答案和待确认项继续；旧候选发布命令不覆盖本批已采用的文字。
+`python tools/full_dataset_status.py` 同时显示已采用的修改数和全量待确认数。合并及清理明细在数据目录的 `review/merged_descriptions/`。使用当前合并版进行训练时采用[手动训练入口](../full-training.md)，仍保留待确认状态。需要全量复核时，按现用答案和待确认项继续；旧候选发布命令不覆盖本批已采用的文字。
 
 下列为历史生成方式，可按[质量复查流程](quality-review.md)处理；下列为原接续流程，不能绕过新复查发布。
 

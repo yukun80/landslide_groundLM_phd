@@ -10,7 +10,9 @@
 | src/xiaomi_lens/train/data/domain.py | 来源读取、划分、去重、辅助图与答案生成 |
 | src/xiaomi_lens/description_checks.py | 对照文字与预测区域，列出可核对的不一致 |
 | src/xiaomi_lens/domain_runtime.py | 共用模型加载、输入、预测和保存 |
-| src/xiaomi_lens/train/domain_train.py | 两阶段训练与恢复 |
+| src/xiaomi_lens/train/domain_train.py | 两阶段训练、每次最多同时处理的样本数、显存试跑与恢复 |
+| src/xiaomi_lens/train/domain_batch.py | `merged_snapshot` 核对合并版身份；`batch_inputs` 对齐文字、图像顺序及每张图的有效滑坡区域；`training_batches` 保持更新顺序，可提前在 CPU 准备下一批 |
+| tools/check_domain_batch.py | 对比三个来源的单张与成批输入，核对提前准备后的输入、尾批及异常退出 |
 | src/xiaomi_lens/domain_evaluation.py | 自由预测评分与汇总 |
 | eval/domain.py | 评测入口及最终评估限制 |
 | train.py | 与原项目习惯一致的训练入口 |
